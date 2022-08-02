@@ -36,6 +36,7 @@ set(${PROJECT_NAME}_sources
   src/rcl/client.c
   src/rcl/common.c
   src/rcl/context.c
+  src/rcl/discovery_params.c
   src/rcl/domain_id.c
   src/rcl/event.c
   src/rcl/expand_topic_name.c
