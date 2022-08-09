@@ -29,7 +29,7 @@ extern "C"
 #include "rmw/error_handling.h"
 #include "rmw/rmw.h"
 #include "tracetools/tracetools.h"
-#include "rcl_interfaces/msg/service_event_type.h"
+#include "service_msgs/msg/service_event_info.h"
 
 
 #include "rcl/introspection.h"
@@ -115,8 +115,8 @@ rcl_client_init(
         sizeof(rcl_service_introspection_utils_t), allocator->state);
     *client->impl->introspection_utils = rcl_get_zero_initialized_introspection_utils();
     ret = rcl_service_introspection_init(
-        client->impl->introspection_utils, type_support,
-        remapped_service_name, node, options->clock, allocator);
+        client->impl->introspection_utils, type_support, remapped_service_name, node,
+        options->clock, allocator);
   }
 
 
@@ -269,7 +269,7 @@ rcl_send_request(const rcl_client_t * client, const void * ros_request, int64_t 
   if (rcl_client_get_options(client)->enable_service_introspection) {
     rcl_ret_t ret = rcl_introspection_send_message(
         client->impl->introspection_utils,
-        rcl_interfaces__msg__ServiceEventType__REQUEST_SENT,
+        service_msgs__msg__ServiceEventInfo__REQUEST_SENT,
         ros_request,
         *sequence_number,
         client->impl->rmw_handle->writer_guid,
@@ -316,7 +316,7 @@ rcl_take_response_with_info(
   if (rcl_client_get_options(client)->enable_service_introspection) {
     rcl_ret_t ret = rcl_introspection_send_message(
       client->impl->introspection_utils,
-      rcl_interfaces__msg__ServiceEventType__RESPONSE_RECEIVED,
+      service_msgs__msg__ServiceEventInfo__RESPONSE_RECEIVED,
       ros_response,
       request_header->request_id.sequence_number,
       client->impl->rmw_handle->writer_guid,

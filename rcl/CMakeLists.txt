@@ -11,6 +11,7 @@ find_package(rcutils REQUIRED)
 find_package(rmw REQUIRED)
 find_package(rmw_implementation REQUIRED)
 find_package(rosidl_runtime_c REQUIRED)
+find_package(service_msgs REQUIRED)
 find_package(tracetools REQUIRED)
 find_package(rosidl_typesupport_introspection_c)
 find_package(rosidl_typesupport_c)
@@ -86,6 +87,7 @@ ament_target_dependencies(${PROJECT_NAME}
   "tracetools"
   "rosidl_typesupport_introspection_c"
   "rosidl_typesupport_c"
+  "service_msgs"
 )
 
 # Causes the visibility macros to use dllexport rather than dllimport,
@@ -127,6 +129,7 @@ ament_export_dependencies(${RCL_LOGGING_IMPL})
 ament_export_dependencies(rosidl_runtime_c)
 ament_export_dependencies(tracetools)
 ament_export_dependencies(rosidl_typesupport_c)
+ament_export_dependencies(service_msgs)
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)

@@ -25,9 +25,6 @@ extern "C" {
 #include "builtin_interfaces/msg/time.h"
 #include "dlfcn.h"
 #include "rcl/error_handling.h"
-#include "rcl_interfaces/msg/service_event.h"
-#include "rcl_interfaces/msg/service_event_info.h"
-#include "rcl_interfaces/msg/service_event_type.h"
 #include "rcutils/logging_macros.h"
 #include "rcutils/macros.h"
 #include "rcutils/shared_library.h"
@@ -36,16 +33,14 @@ extern "C" {
 #include "rosidl_runtime_c/string_functions.h"
 #include "rosidl_typesupport_c/type_support_map.h"
 #include "unique_identifier_msgs/msg/uuid.h"
+#include "service_msgs/msg/service_event_info.h"
 
 rcl_service_introspection_utils_t rcl_get_zero_initialized_introspection_utils()
 {
   static rcl_service_introspection_utils_t null_introspection_utils = {
-    .response_type_support = NULL,
-    .request_type_support = NULL,
+    .service_type_support = NULL,
     .publisher = NULL,
     .clock = NULL,
-    .service_name = NULL,
-    .service_type_name = NULL,
     .service_event_topic_name = NULL,
     ._enabled = true,
     ._content_enabled = true,
@@ -61,7 +56,7 @@ rcl_ret_t rcl_service_typesupport_to_message_typesupport(
 {
   rcutils_ret_t ret;
   type_support_map_t * map = (type_support_map_t *)service_typesupport->data;
-  // TODO(ihasdapie): change to #define or some constant
+  // TODO(ihasdapie): #define this
   const char * typesupport_library_fmt = "lib%s__rosidl_typesupport_c.so";
   const char * service_message_fmt =  // package_name, type name, Request/Response
     "rosidl_typesupport_c__get_message_type_support_handle__%s__srv__%s_%s";
@@ -119,23 +114,15 @@ rcl_ret_t rcl_service_introspection_init(
   const rosidl_service_type_support_t * service_type_support,
   const char * service_name,
   const rcl_node_t * node,
-  const rcl_clock_t * clock,
+  rcl_clock_t * clock,
   rcl_allocator_t * allocator)
 {
   rcl_ret_t ret;
 
-  introspection_utils->service_name =
-    allocator->allocate(strlen(service_name) + 1, allocator->state);
-  strcpy(introspection_utils->service_name, service_name);
+  // TODO(ihasdapie): Use maximum length of service name and type name?
 
-  const char * service_type_name = rcl_service_get_service_type_name(service_type_support);
-  introspection_utils->service_type_name =
-    allocator->allocate(strlen(service_type_name) + 1, allocator->state);
-  strcpy(introspection_utils->service_type_name, service_type_name);
-
-  rcl_service_typesupport_to_message_typesupport(
-    service_type_support, &introspection_utils->request_type_support,
-    &introspection_utils->response_type_support, allocator);
+  // Can do this because typesupports have static lifetimes
+  introspection_utils->service_type_support = service_type_support;
 
   // Make a publisher
   char * service_event_topic_name = (char *)allocator->zero_allocate(
@@ -143,21 +130,16 @@ rcl_ret_t rcl_service_introspection_init(
     allocator->state);
   strcpy(service_event_topic_name, service_name);
   strcat(service_event_topic_name, RCL_SERVICE_INTROSPECTION_TOPIC_POSTFIX);
-
   introspection_utils->service_event_topic_name =
     allocator->allocate(strlen(service_event_topic_name) + 1, allocator->state);
-
   strcpy(introspection_utils->service_event_topic_name, service_event_topic_name);
 
   introspection_utils->publisher = allocator->allocate(sizeof(rcl_publisher_t), allocator->state);
   *introspection_utils->publisher = rcl_get_zero_initialized_publisher();
-  const rosidl_message_type_support_t * service_event_typesupport =
-    ROSIDL_GET_MSG_TYPE_SUPPORT(rcl_interfaces, msg, ServiceEvent);
 
   rcl_publisher_options_t publisher_options = rcl_publisher_get_default_options();
-  ret = rcl_publisher_init(
-    introspection_utils->publisher, node, service_event_typesupport, service_event_topic_name,
-    &publisher_options);
+  ret = rcl_publisher_init(introspection_utils->publisher, node,
+      service_type_support->event_typesupport, service_event_topic_name, &publisher_options);
   if (RCL_RET_OK != ret) {
     RCL_SET_ERROR_MSG(rcl_get_error_string().str);
     return RCL_RET_ERROR;
@@ -175,21 +157,21 @@ rcl_ret_t rcl_service_introspection_fini(
   rcl_node_t * node)
 {
   rcl_ret_t ret;
-  ret = rcl_publisher_fini(introspection_utils->publisher, node);
-  if (RCL_RET_OK != ret) {
-    RCL_SET_ERROR_MSG(rcl_get_error_string().str);
-    return RCL_RET_ERROR;
+  if (NULL != introspection_utils->publisher) {
+    ret = rcl_publisher_fini(introspection_utils->publisher, node);
+    if (RCL_RET_OK != ret) {
+      RCL_SET_ERROR_MSG(rcl_get_error_string().str);
+      return RCL_RET_ERROR;
+    }
   }
-
-  allocator->deallocate(introspection_utils->publisher, allocator->state);
-  allocator->deallocate(introspection_utils->service_name, allocator->state);
+  
+  if (NULL != introspection_utils->publisher) {
+    allocator->deallocate(introspection_utils->publisher, allocator->state);
+  }
   allocator->deallocate(introspection_utils->service_event_topic_name, allocator->state);
-  allocator->deallocate(introspection_utils->service_type_name, allocator->state);
 
   introspection_utils->publisher = NULL;
-  introspection_utils->service_name = NULL;
   introspection_utils->service_event_topic_name = NULL;
-  introspection_utils->service_type_name = NULL;
 
   return RCL_RET_OK;
 }
@@ -205,84 +187,56 @@ rcl_ret_t rcl_introspection_send_message(
 
   rcl_ret_t ret;
 
-  rcl_interfaces__msg__ServiceEvent msg;
-  rcl_interfaces__msg__ServiceEvent__init(&msg);
-
-  rcl_interfaces__msg__ServiceEventInfo msg_info;
-  rcl_interfaces__msg__ServiceEventInfo__init(&msg_info);
-
-  rcl_serialized_message_t serialized_message = rmw_get_zero_initialized_serialized_message();
-  if (introspection_utils->_content_enabled) {
-    // build serialized message
-    ret = rmw_serialized_message_init(&serialized_message, 0U, allocator);
-    rosidl_message_type_support_t * serialized_message_ts;
-    switch (event_type) {
-      case rcl_interfaces__msg__ServiceEventType__REQUEST_SENT:
-      case rcl_interfaces__msg__ServiceEventType__REQUEST_RECEIVED:
-        serialized_message_ts = introspection_utils->request_type_support;
-        break;
-      case rcl_interfaces__msg__ServiceEventType__RESPONSE_SENT:
-      case rcl_interfaces__msg__ServiceEventType__RESPONSE_RECEIVED:
-        serialized_message_ts = introspection_utils->response_type_support;
-        break;
-      default:
-        RCL_SET_ERROR_MSG("Invalid event type");
-        return RCL_RET_ERROR;
-    }
-
-    ret = rmw_serialize(ros_response_request, serialized_message_ts, &serialized_message);
-    if (RMW_RET_OK != ret) {
-      RCL_SET_ERROR_MSG(rmw_get_error_string().str);
-      return RCL_RET_ERROR;
-    }
-    rosidl_runtime_c__octet__Sequence__init(
-      &msg.serialized_event, serialized_message.buffer_length);
-    memcpy(msg.serialized_event.data, serialized_message.buffer, serialized_message.buffer_length);
-  }
-
-  // populate info message
-  msg_info.event_type = event_type;
-  msg_info.sequence_number = sequence_number;
-  rosidl_runtime_c__String__assign(&msg_info.service_name, introspection_utils->service_name);
-  rosidl_runtime_c__String__assign(&msg_info.event_name, introspection_utils->service_type_name);
-
-  builtin_interfaces__msg__Time timestamp;
-  builtin_interfaces__msg__Time__init(&timestamp);
-
   rcl_time_point_value_t now;
-  ret = rcl_clock_get_now(introspection_utils->clock, &now);
+  ret = rcl_clock_get_now(introspection_utils->clock, &now); // ERROR: Clock null?
   if (RMW_RET_OK != ret) {
     RCL_SET_ERROR_MSG(rmw_get_error_string().str);
     return RCL_RET_ERROR;
   }
-  timestamp.sec = RCL_NS_TO_S(now);
-  timestamp.nanosec = now % (1000LL * 1000LL * 1000LL);
-  msg_info.stamp = timestamp;
 
-  unique_identifier_msgs__msg__UUID uuid_msg;
-  unique_identifier_msgs__msg__UUID__init(&uuid_msg);
-  memcpy(uuid_msg.uuid, uuid, 16 * sizeof(uint8_t));
-  msg_info.client_id = uuid_msg;
+  rosidl_service_introspection_info_t info = {
+    .event_type = event_type,
+    .stamp_sec = RCL_NS_TO_S(now),
+    .stamp_nanosec = now % (1000LL * 1000LL * 1000LL),
+    .client_id = {uuid[0], uuid[1], uuid[2], uuid[3], uuid[4], uuid[5], uuid[6], uuid[7],
+      uuid[8], uuid[9], uuid[10], uuid[11], uuid[12], uuid[13], uuid[14], uuid[15]}, // or just memcpy it in? is there a shorthand?
+    .sequence_number = sequence_number,
+  };
 
-  msg.info = msg_info;
+
+  
+  void * service_introspection_message;
+  switch (event_type) {
+    case service_msgs__msg__ServiceEventInfo__REQUEST_RECEIVED:
+    case service_msgs__msg__ServiceEventInfo__REQUEST_SENT:
+      service_introspection_message = introspection_utils->service_type_support->introspection_message_create_handle(
+          &info, allocator, ros_response_request, NULL, introspection_utils->_content_enabled); // Add switch depending on req/resp
+          break;
+    case service_msgs__msg__ServiceEventInfo__RESPONSE_RECEIVED:
+    case service_msgs__msg__ServiceEventInfo__RESPONSE_SENT: // error on send_response
+      service_introspection_message = introspection_utils->service_type_support->introspection_message_create_handle(
+          &info, allocator, NULL, ros_response_request, introspection_utils->_content_enabled); // Add switch depending on req/resp
+          break;
+  }
+
+  if (NULL == service_introspection_message) {
+    RCL_SET_ERROR_MSG("Failed to create service introspection message");
+    return RCL_RET_ERROR;
+  }
+
+
 
   // and publish it out!
-  ret = rcl_publish(introspection_utils->publisher, &msg, NULL);
+  // TODO(ihasdapie): Publisher context can become invalidated on shutdown
+  ret = rcl_publish(introspection_utils->publisher, service_introspection_message, NULL);
   if (RMW_RET_OK != ret) {
     RCL_SET_ERROR_MSG(rmw_get_error_string().str);
     return RCL_RET_ERROR;
   }
 
   // clean up
-  if (introspection_utils->_content_enabled) {
-    ret = rmw_serialized_message_fini(&serialized_message);
-    if (RMW_RET_OK != ret) {
-      RCL_SET_ERROR_MSG(rmw_get_error_string().str);
-      return RCL_RET_ERROR;
-    }
-  }
+  introspection_utils->service_type_support->introspection_message_destroy_handle(service_introspection_message, allocator);
 
-  rcl_interfaces__msg__ServiceEvent__fini(&msg);
   return RCL_RET_OK;
 }
 
@@ -294,12 +248,11 @@ rcl_ret_t rcl_service_introspection_enable(
 
   introspection_utils->publisher = allocator->allocate(sizeof(rcl_publisher_t), allocator->state);
   *introspection_utils->publisher = rcl_get_zero_initialized_publisher();
-  const rosidl_message_type_support_t * service_event_typesupport =
-    ROSIDL_GET_MSG_TYPE_SUPPORT(rcl_interfaces, msg, ServiceEvent);
 
   rcl_publisher_options_t publisher_options = rcl_publisher_get_default_options();
   ret = rcl_publisher_init(
-    introspection_utils->publisher, node, service_event_typesupport,
+    introspection_utils->publisher, node, 
+    introspection_utils->service_type_support->event_typesupport,
     introspection_utils->service_event_topic_name, &publisher_options);
   if (RCL_RET_OK != ret) {
     RCL_SET_ERROR_MSG(rcl_get_error_string().str);
@@ -332,6 +285,11 @@ rcl_ret_t rcl_service_introspection_configure_service_events(
   rcl_service_t * service, rcl_node_t * node, bool enable)
 {
   rcl_service_introspection_utils_t * introspection_utils = service->impl->introspection_utils;
+
+  if (enable == introspection_utils->_enabled) {
+    return RCL_RET_OK;
+  }
+
   rcl_ret_t ret;
 
   if (enable) {
@@ -352,11 +310,15 @@ rcl_ret_t rcl_service_introspection_configure_client_events(
   rcl_client_t * client, rcl_node_t * node, bool enable)
 {
   rcl_service_introspection_utils_t * introspection_utils = client->impl->introspection_utils;
-  rcl_ret_t ret;
 
+  if (enable == introspection_utils->_enabled) {
+    return RCL_RET_OK;
+  }
+
+  rcl_ret_t ret;
   if (enable) {
-    ret =
-      rcl_service_introspection_enable(introspection_utils, node, &client->impl->options.allocator);
+    ret = rcl_service_introspection_enable(
+        introspection_utils, node, &client->impl->options.allocator);
   } else {
     ret = rcl_service_introspection_disable(
       introspection_utils, node, &client->impl->options.allocator);

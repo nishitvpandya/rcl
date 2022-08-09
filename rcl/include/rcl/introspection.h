@@ -28,17 +28,19 @@ extern "C"
 #include "stdbool.h"
 
 #define RCL_SERVICE_INTROSPECTION_TOPIC_POSTFIX "/_service_event"
+#define RCL_SERVICE_INTROSPECTION_PUBLISH_CLIENT_PARAMETER "publish_client_events"
+#define RCL_SERVICE_INTROSPECTION_PUBLISH_SERVICE_PARAMETER "publish_service_events"
+#define RCL_SERVICE_INTROSPECTION_PUBLISH_CLIENT_EVENT_CONTENT_PARAMETER "publish_client_content"
+#define RCL_SERVICE_INTROSPECTION_PUBLISH_SERVICE_EVENT_CONTENT_PARAMETER "publish_service_content"
+
 
 typedef struct rcl_service_introspection_utils_s {
   rcl_clock_t * clock;
   rcl_publisher_t * publisher;
-  rosidl_message_type_support_t * request_type_support;
-  rosidl_message_type_support_t * response_type_support;
+  const rosidl_service_type_support_t * service_type_support;
   char * service_name;
   char * service_type_name;
   char * service_event_topic_name;
-  
-
   // enable/disable service introspection during runtime
   bool _enabled;
   // enable/disable passing along service introspection content during runtime
@@ -67,7 +69,7 @@ rcl_service_introspection_init(
   const rosidl_service_type_support_t * service_type_support,
   const char * service_name,
   const rcl_node_t * node,
-  const rcl_clock_t * clock,
+  rcl_clock_t * clock,
   rcl_allocator_t * allocator);
 
 RCL_PUBLIC

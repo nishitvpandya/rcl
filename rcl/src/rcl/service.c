@@ -41,7 +41,7 @@ extern "C"
 #include "rosidl_runtime_c/service_type_support_struct.h"
 #include "rosidl_runtime_c/message_type_support_struct.h"
 
-#include "rcl_interfaces/msg/service_event_type.h"
+#include "service_msgs/msg/service_event_info.h"
 
 #include "rosidl_typesupport_c/type_support_map.h"
 
@@ -149,13 +149,8 @@ rcl_service_init(
         sizeof(rcl_service_introspection_utils_t), allocator->state);
     *service->impl->introspection_utils = rcl_get_zero_initialized_introspection_utils();
     ret = rcl_service_introspection_init(
-        service->impl->introspection_utils,
-        type_support,
-        remapped_service_name,
-        node,
-        options->clock,
-        allocator
-        );
+        service->impl->introspection_utils, type_support, remapped_service_name, node,
+        options->clock, allocator);
   }
   
 
@@ -352,11 +347,10 @@ rcl_take_request_with_info(
   if (!taken) {
     return RCL_RET_SERVICE_TAKE_FAILED;
   }
-
   if (rcl_service_get_options(service)->enable_service_introspection) {
     rcl_ret_t rclret = rcl_introspection_send_message(
         service->impl->introspection_utils,
-        rcl_interfaces__msg__ServiceEventType__REQUEST_RECEIVED,
+        service_msgs__msg__ServiceEventInfo__REQUEST_RECEIVED,
         ros_request,
         request_header->request_id.sequence_number,
         request_header->request_id.writer_guid,
@@ -411,7 +405,7 @@ rcl_send_response(
   if (rcl_service_get_options(service)->enable_service_introspection) {
     rcl_ret_t ret = rcl_introspection_send_message(
         service->impl->introspection_utils,
-        rcl_interfaces__msg__ServiceEventType__RESPONSE_SENT,
+        service_msgs__msg__ServiceEventInfo__RESPONSE_SENT,
         ros_response,
         request_header->sequence_number,
         request_header->writer_guid,
