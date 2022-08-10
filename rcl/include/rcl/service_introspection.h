@@ -12,21 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#ifndef RCL__SERVICE_INTROSPECTION_H_
+#define RCL__SERVICE_INTROSPECTION_H_
 
-#ifndef RCL__SERVICE_IMPL_H_
-#define RCL__SERVICE_IMPL_H_
+#define RCL_SERVICE_INTROSPECTION_TOPIC_POSTFIX "/_service_event"
+#define RCL_SERVICE_INTROSPECTION_PUBLISH_CLIENT_PARAMETER "publish_client_events"
+#define RCL_SERVICE_INTROSPECTION_PUBLISH_SERVICE_PARAMETER "publish_service_events"
+#define RCL_SERVICE_INTROSPECTION_PUBLISH_CLIENT_EVENT_CONTENT_PARAMETER "publish_client_content"
+#define RCL_SERVICE_INTROSPECTION_PUBLISH_SERVICE_EVENT_CONTENT_PARAMETER "publish_service_content"
 
-
-#include "rcl/service.h"
-#include "service_event_publisher.h"
-
-struct rcl_service_impl_s
-{
-  rcl_service_options_t options;
-  rmw_qos_profile_t actual_request_subscription_qos;
-  rmw_qos_profile_t actual_response_publisher_qos;
-  rmw_service_t * rmw_handle;
-  rcl_service_event_publisher_t * service_event_publisher;
-};
-
-#endif  // RCL__SERVICE_IMPL_H_
+#endif // RCL__SERVICE_INTROSPECTION_H_

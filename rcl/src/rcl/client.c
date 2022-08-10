@@ -32,7 +32,7 @@ extern "C"
 #include "service_msgs/msg/service_event_info.h"
 
 
-#include "rcl/introspection.h"
+#include "service_event_publisher.h"
 
 #include "./common.h"
 #include "./client_impl.h"
@@ -109,17 +109,15 @@ rcl_client_init(
     goto fail;
   }
   
-  client->impl->introspection_utils = NULL;
+  client->impl->service_event_publisher = NULL;
   if (options->enable_service_introspection) {
-    client->impl->introspection_utils = (rcl_service_event_publisher_t *) allocator->allocate(
-        sizeof(rcl_service_event_publisher_t), allocator->state);
-    *client->impl->introspection_utils = rcl_get_zero_initialized_introspection_utils();
-    ret = rcl_service_introspection_init(
-        client->impl->introspection_utils, type_support, remapped_service_name, node,
+    client->impl->service_event_publisher = allocator->zero_allocate(
+        1, sizeof(rcl_service_event_publisher_t), allocator->state);
+    *client->impl->service_event_publisher = rcl_get_zero_initialized_service_event_publisher();
+    ret = rcl_service_event_publisher_init(
+        client->impl->service_event_publisher, type_support, remapped_service_name, node,
         options->clock, allocator);
   }
-
-
   // get actual qos, and store it
   rmw_ret_t rmw_ret = rmw_client_request_publisher_get_actual_qos(
     client->impl->rmw_handle,
@@ -159,9 +157,9 @@ rcl_client_init(
     remapped_service_name);
   goto cleanup;
 fail:
-  if (client->impl->introspection_utils) {
-    allocator->deallocate(client->impl->introspection_utils, allocator->state);
-    client->impl->introspection_utils = NULL;
+  if (client->impl->service_event_publisher) {
+    allocator->deallocate(client->impl->service_event_publisher, allocator->state);
+    client->impl->service_event_publisher = NULL;
   }
   if (client->impl) {
     allocator->deallocate(client->impl, allocator->state);
@@ -267,8 +265,8 @@ rcl_send_request(const rcl_client_t * client, const void * ros_request, int64_t 
 
   
   if (rcl_client_get_options(client)->enable_service_introspection) {
-    rcl_ret_t ret = rcl_introspection_send_message(
-        client->impl->introspection_utils,
+    rcl_ret_t ret = rcl_send_service_event_message(
+        client->impl->service_event_publisher,
         service_msgs__msg__ServiceEventInfo__REQUEST_SENT,
         ros_request,
         *sequence_number,
@@ -314,8 +312,8 @@ rcl_take_response_with_info(
   }
 
   if (rcl_client_get_options(client)->enable_service_introspection) {
-    rcl_ret_t ret = rcl_introspection_send_message(
-      client->impl->introspection_utils,
+    rcl_ret_t ret = rcl_send_service_event_message(
+      client->impl->service_event_publisher,
       service_msgs__msg__ServiceEventInfo__RESPONSE_RECEIVED,
       ros_response,
       request_header->request_id.sequence_number,
@@ -388,6 +386,53 @@ rcl_client_set_on_new_response_callback(
     client->impl->rmw_handle,
     callback,
     user_data);
+}
+
+rcl_ret_t
+rcl_service_introspection_enable_client_service_events(
+    rcl_client_t * client,
+    rcl_node_t * node)
+{
+  rcl_service_event_publisher_t * introspection_utils = client->impl->service_event_publisher;
+  if (introspection_utils->impl->_enabled) {
+    return RCL_RET_OK;
+  }
+  rcl_ret_t ret = rcl_service_introspection_enable(
+      introspection_utils, node, &client->impl->options.allocator);
+  if (RCL_RET_OK != ret) {
+    RCL_SET_ERROR_MSG(rmw_get_error_string().str);
+    return RCL_RET_ERROR;
+  }
+  return RCL_RET_OK;
+}
+
+rcl_ret_t
+rcl_service_introspection_disable_client_service_events(
+    rcl_client_t * client,
+    rcl_node_t * node)
+{
+  rcl_service_event_publisher_t * introspection_utils = client->impl->service_event_publisher;
+  if (introspection_utils->impl->_enabled) {
+    return RCL_RET_OK;
+  }
+  rcl_ret_t ret = rcl_service_introspection_disable(
+      introspection_utils, node, &client->impl->options.allocator);
+  if (RCL_RET_OK != ret) {
+    RCL_SET_ERROR_MSG(rmw_get_error_string().str);
+    return RCL_RET_ERROR;
+  }
+  return RCL_RET_OK;
+}
+
+void
+rcl_service_introspection_enable_client_service_event_message_payload(rcl_client_t * client)
+{
+  client->impl->service_event_publisher->impl->_content_enabled = true;
+}
+
+void
+rcl_service_introspection_disable_client_service_event_message_payload(rcl_client_t * client){
+  client->impl->service_event_publisher->impl->_content_enabled = false;
 }
 
 #ifdef __cplusplus

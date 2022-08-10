@@ -498,6 +498,57 @@ rcl_client_set_on_new_response_callback(
   rcl_event_callback_t callback,
   const void * user_data);
 
+/// Enables service introspection features for the client
+/*
+ * This function is a thin wrapper around rcl_service_introspection_enable
+ *
+ * <hr>
+ * Attribute          | Adherence
+ * ------------------ | -------------
+ * Allocates Memory   | Yes
+ * Thread-Safe        |  TODO(ihasdapie): Fill this out
+ * Uses Atomics       | 
+ * Lock-Free          |
+ * \param[in] client The client on which to enable service introspection
+ * \param[in] node The node for which the service event publisher is to be associated to
+ */
+RCL_PUBLIC
+RCL_WARN_UNUSED
+rcl_ret_t
+rcl_service_introspection_enable_client_service_events(
+    rcl_client_t * client,
+    rcl_node_t * node);
+
+/// Disables service introspection features for the client
+/*
+ * This function is a thin wrapper around rcl_service_introspection_disable
+ *
+ * <hr>
+ * Attribute          | Adherence
+ * ------------------ | -------------
+ * Allocates Memory   | Yes
+ * Thread-Safe        |  TODO(ihasdapie): Fill this out
+ * Uses Atomics       | 
+ * Lock-Free          |
+ * \param[in] client The client on which to disable service introspection
+ * \param[in] node The node for which the service event publisher is associated with
+ */
+RCL_PUBLIC
+RCL_WARN_UNUSED
+rcl_ret_t
+rcl_service_introspection_disable_client_service_events(
+    rcl_client_t * client,
+    rcl_node_t * node);
+
+RCL_PUBLIC
+void
+rcl_service_introspection_enable_client_service_event_message_payload( rcl_client_t * client);
+
+RCL_PUBLIC
+void
+rcl_service_introspection_disable_client_service_event_message_payload( rcl_client_t * client);
+
+
 #ifdef __cplusplus
 }
 #endif

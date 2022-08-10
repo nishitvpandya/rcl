@@ -61,13 +61,13 @@ set(${PROJECT_NAME}_sources
   src/rcl/rmw_implementation_identifier_check.c
   src/rcl/security.c
   src/rcl/service.c
+  src/rcl/service_event_publisher.c
   src/rcl/subscription.c
   src/rcl/time.c
   src/rcl/timer.c
   src/rcl/validate_enclave_name.c
   src/rcl/validate_topic_name.c
   src/rcl/wait.c
-  src/rcl/introspection.c
 )
 
 add_library(${PROJECT_NAME} ${${PROJECT_NAME}_sources})

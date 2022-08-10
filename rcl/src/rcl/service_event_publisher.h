@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef RCL__SERVICE_INTROSPECTION_H_
-#define RCL__SERVICE_INTROSPECTION_H_
+#ifndef RCL__SERVICE_EVENT_PUBLISHER_H_
+#define RCL__SERVICE_EVENT_PUBLISHER_H_
 
 #ifdef __cplusplus
 extern "C"
@@ -27,25 +27,23 @@ extern "C"
 #include "rmw/rmw.h"
 #include "stdbool.h"
 
-#define RCL_SERVICE_INTROSPECTION_TOPIC_POSTFIX "/_service_event"
-#define RCL_SERVICE_INTROSPECTION_PUBLISH_CLIENT_PARAMETER "publish_client_events"
-#define RCL_SERVICE_INTROSPECTION_PUBLISH_SERVICE_PARAMETER "publish_service_events"
-#define RCL_SERVICE_INTROSPECTION_PUBLISH_CLIENT_EVENT_CONTENT_PARAMETER "publish_client_content"
-#define RCL_SERVICE_INTROSPECTION_PUBLISH_SERVICE_EVENT_CONTENT_PARAMETER "publish_service_content"
-
-
-typedef struct rcl_service_event_publisher_s {
+typedef struct rcl_service_event_impl_s {
   /// Handle to clock for timestamping service events
   rcl_clock_t * clock;
   /// Handle to publisher for publishing service events
   rcl_publisher_t * publisher;
   /// Handle to service typesupport
   const rosidl_service_type_support_t * service_type_support;
+  /// Name of service introspection topic: <service_name>/RCL_SERVICE_INTROSPECTION_TOPIC_POSTFIX
   char service_event_topic_name[255];
   // Enable/disable service introspection during runtime
   bool _enabled;
-  // Enable/disable passing along service introspection content during runtime
+  // Enable/disable including request/response payload in service event message during runtime
   bool _content_enabled;
+} rcl_service_event_publisher_impl_t;
+
+typedef struct rcl_service_event_publisher_s {
+  rcl_service_event_publisher_impl_t * impl;
 } rcl_service_event_publisher_t;
 
 RCL_PUBLIC
@@ -57,35 +55,35 @@ rcl_service_typesupport_to_message_typesupport(
   rosidl_message_type_support_t ** response_typesupport,
   const rcl_allocator_t * allocator);
 
-RCL_PUBLIC
+RCL_LOCAL
 RCL_WARN_UNUSED
 rcl_service_event_publisher_t
-rcl_get_zero_initialized_introspection_utils();
+rcl_get_zero_initialized_service_event_publisher();
 
-RCL_PUBLIC
+RCL_LOCAL
 RCL_WARN_UNUSED
 rcl_ret_t
-rcl_service_introspection_init(
-  rcl_service_event_publisher_t * introspection_utils,
+rcl_service_event_publisher_init(
+  rcl_service_event_publisher_t * service_event_publisher,
   const rosidl_service_type_support_t * service_type_support,
   const char * service_name,
   const rcl_node_t * node,
   rcl_clock_t * clock,
   rcl_allocator_t * allocator);
 
-RCL_PUBLIC
+RCL_LOCAL
 RCL_WARN_UNUSED
 rcl_ret_t
-rcl_service_introspection_fini(
-  rcl_service_event_publisher_t * introspection_utils,
+rcl_service_event_publisher_fini(
+  rcl_service_event_publisher_t * service_event_publisher,
   rcl_allocator_t * allocator,
   rcl_node_t *  node);
 
-RCL_PUBLIC
+RCL_LOCAL
 RCL_WARN_UNUSED
 rcl_ret_t
-rcl_introspection_send_message(
-  const rcl_service_event_publisher_t * introspection_utils,
+rcl_send_service_event_message(
+  const rcl_service_event_publisher_t * service_event_publisher,
   uint8_t event_type,
   const void * ros_response_request,
   int64_t sequence_number,
@@ -100,78 +98,23 @@ RCL_LOCAL
 RCL_WARN_UNUSED
 rcl_ret_t
 rcl_service_introspection_enable(
-    rcl_service_event_publisher_t * introspection_utils,
-    const rcl_node_t * node,
-    rcl_allocator_t * allocator);
+  rcl_service_event_publisher_t * service_event_publisher,
+  const rcl_node_t * node,
+  rcl_allocator_t * allocator);
 
-/*  Disabled service introspection by fini-ing and freeing the introspection clock and publisher
+/*  Disables service introspection by fini-ing and freeing the introspection clock and publisher
  *  
  *  Does nothing and returns RCL_RET_OK if already disabled
- *
- *
- *
  */
-
 RCL_LOCAL
 RCL_WARN_UNUSED
 rcl_ret_t
 rcl_service_introspection_disable(
-    rcl_service_event_publisher_t * introspection_utils,
-    rcl_node_t * node,
-    const rcl_allocator_t * allocator);
-
-
-
-
-/*
- * Enables/disables service introspection for client/service
- * These functions are thin wrappers around rcl_service_introspection_{enable, disable}
- *
- *
- *
- */
-RCL_PUBLIC
-RCL_WARN_UNUSED
-rcl_ret_t
-rcl_service_introspection_configure_service_events(
-    rcl_service_t * service,
-    rcl_node_t * node,
-    bool enable);
-
-RCL_PUBLIC
-RCL_WARN_UNUSED
-rcl_ret_t
-rcl_service_introspection_configure_client_events(
-    rcl_client_t * client,
-    rcl_node_t * node,
-    bool enable);
-
-
-/*
- *
- */
-RCL_PUBLIC
-void
-rcl_service_introspection_configure_client_content(rcl_client_t * client, bool enable);
-
-RCL_PUBLIC
-void
-rcl_service_introspection_configure_service_content(rcl_service_t * service, bool enable);
-
-
-
-// TODO(ihasdapie): Do we want some getters for if content and/or introspection enabled/disabled?
-
-
-
-
-
-
-
+  rcl_service_event_publisher_t * service_event_publisher,
+  rcl_node_t * node,
+  const rcl_allocator_t * allocator);
 
 #ifdef __cplusplus
 }
 #endif
-
-
-#endif // RCL__SERVICE_INTROSPECTION_H_
+#endif // RCL__SERVICE_EVENT_PUBLISHER_H_

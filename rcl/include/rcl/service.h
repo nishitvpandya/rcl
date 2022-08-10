@@ -29,7 +29,6 @@ extern "C"
 #include "rcl/macros.h"
 #include "rcl/node.h"
 #include "rcl/visibility_control.h"
-// #include "rcl/introspection.h" // TODO(ihasdapie): Dependency cycle. Instead let's just put the clock into service_options.
 
 /// Internal rcl implementation struct.
 typedef struct rcl_service_impl_s rcl_service_impl_t;
@@ -51,7 +50,6 @@ typedef struct rcl_service_options_s
   rcl_allocator_t allocator;
   /// Enable/Disable service introspection features
   bool enable_service_introspection;
-
   /// The clock to use for service introspection message timestampes
   rcl_clock_t * clock;
 } rcl_service_options_t;
@@ -112,7 +110,7 @@ rcl_get_zero_initialized_service(void);
  *
  * The options struct allows the user to set the quality of service settings as
  * well as a custom allocator which is used when initializing/finalizing the
- * client to allocate space for incidentals, e.g. the service name string.
+ * server to allocate space for incidentals, e.g. the service name string.
  *
  * Expected usage (for C services):
  *
@@ -289,7 +287,7 @@ rcl_take_request(
   rmw_request_id_t * request_header,
   void * ros_request);
 
-/// Send a ROS response to a client using a service.
+/// Send a ROS response to a server using a service.
 /**
  * It is the job of the caller to ensure that the type of the `ros_response`
  * parameter and the type associate with the service (via the type support)
@@ -541,6 +539,56 @@ rcl_service_set_on_new_request_callback(
   const rcl_service_t * service,
   rcl_event_callback_t callback,
   const void * user_data);
+
+/// Enables service introspection features for the service
+/*
+ * This function is a thin wrapper around rcl_service_introspection_enable
+ *
+ * <hr>
+ * Attribute          | Adherence
+ * ------------------ | -------------
+ * Allocates Memory   | Yes
+ * Thread-Safe        |  TODO(ihasdapie): Fill this out
+ * Uses Atomics       | 
+ * Lock-Free          |
+ * \param[in] server The server on which to enable service introspection
+ * \param[in] node The node for which the service event publisher is to be associated to
+ */
+RCL_PUBLIC
+RCL_WARN_UNUSED
+rcl_ret_t
+rcl_service_introspection_enable_server_service_events(
+    rcl_service_t * service,
+    rcl_node_t * node);
+
+/// Disables service introspection features for the service
+/*
+ * This function is a thin wrapper around rcl_service_introspection_disable
+ *
+ * <hr>
+ * Attribute          | Adherence
+ * ------------------ | -------------
+ * Allocates Memory   | Yes
+ * Thread-Safe        |  TODO(ihasdapie): Fill this out
+ * Uses Atomics       | 
+ * Lock-Free          |
+ * \param[in] server The server on which to disable service introspection
+ * \param[in] node The node for which the service event publisher is associated with
+ */
+RCL_PUBLIC
+RCL_WARN_UNUSED
+rcl_ret_t
+rcl_service_introspection_disable_server_service_events(
+    rcl_service_t * service,
+    rcl_node_t * node);
+
+RCL_PUBLIC
+void
+rcl_service_introspection_enable_server_service_event_message_payload(rcl_service_t * service);
+
+RCL_PUBLIC
+void
+rcl_service_introspection_disable_server_service_event_message_payload(rcl_service_t * service);
 
 #ifdef __cplusplus
 }

@@ -36,7 +36,7 @@ extern "C"
 
 #include "tracetools/tracetools.h"
 
-#include "rcl/introspection.h"
+#include "service_event_publisher.h"
 
 #include "rosidl_runtime_c/service_type_support_struct.h"
 #include "rosidl_runtime_c/message_type_support_struct.h"
@@ -63,8 +63,7 @@ rcl_service_init(
   const rcl_node_t * node,
   const rosidl_service_type_support_t * type_support,
   const char * service_name,
-  const rcl_service_options_t * options
-  ) // user provide clock
+  const rcl_service_options_t * options)
 {
   RCUTILS_CAN_RETURN_WITH_ERROR_OF(RCL_RET_INVALID_ARGUMENT);
   RCUTILS_CAN_RETURN_WITH_ERROR_OF(RCL_RET_ALREADY_INIT);
@@ -143,16 +142,15 @@ rcl_service_init(
     goto fail;
   }
 
-  service->impl->introspection_utils = NULL;
+  service->impl->service_event_publisher = NULL;
   if (options->enable_service_introspection) {
-    service->impl->introspection_utils = (rcl_service_event_publisher_t *) allocator->allocate(
-        sizeof(rcl_service_event_publisher_t), allocator->state);
-    *service->impl->introspection_utils = rcl_get_zero_initialized_introspection_utils();
-    ret = rcl_service_introspection_init(
-        service->impl->introspection_utils, type_support, remapped_service_name, node,
+    service->impl->service_event_publisher = allocator->zero_allocate(
+        1, sizeof(rcl_service_event_publisher_t), allocator->state);
+    *service->impl->service_event_publisher = rcl_get_zero_initialized_service_event_publisher();
+    ret = rcl_service_event_publisher_init(
+        service->impl->service_event_publisher, type_support, remapped_service_name, node,
         options->clock, allocator);
   }
-  
 
   if (RCL_RET_OK != ret) {
     RCL_SET_ERROR_MSG(rcl_get_error_string().str);
@@ -197,9 +195,9 @@ rcl_service_init(
   goto cleanup;
 fail:
   if (service->impl) {
-    if (service->impl->introspection_utils) {
-      allocator->deallocate(service->impl->introspection_utils, allocator->state);
-      service->impl->introspection_utils = NULL;
+    if (service->impl->service_event_publisher) {
+      allocator->deallocate(service->impl->service_event_publisher, allocator->state);
+      service->impl->service_event_publisher = NULL;
     }
     allocator->deallocate(service->impl, allocator->state);
     service->impl = NULL;
@@ -238,14 +236,14 @@ rcl_service_fini(rcl_service_t * service, rcl_node_t * node)
       result = RCL_RET_ERROR;
     }
     
-    if (service->impl->introspection_utils) {
-      ret = rcl_service_introspection_fini(service->impl->introspection_utils, &allocator, node);
+    if (service->impl->service_event_publisher) {
+      ret = rcl_service_event_publisher_fini(service->impl->service_event_publisher, &allocator, node);
       if (RCL_RET_OK != ret) {
         RCL_SET_ERROR_MSG(rcl_get_error_string().str);
         result = RCL_RET_ERROR;
       }
-      allocator.deallocate(service->impl->introspection_utils, allocator.state);
-      service->impl->introspection_utils = NULL;
+      allocator.deallocate(service->impl->service_event_publisher, allocator.state);
+      service->impl->service_event_publisher = NULL;
     }
 
     allocator.deallocate(service->impl, allocator.state);
@@ -348,8 +346,8 @@ rcl_take_request_with_info(
     return RCL_RET_SERVICE_TAKE_FAILED;
   }
   if (rcl_service_get_options(service)->enable_service_introspection) {
-    rcl_ret_t rclret = rcl_introspection_send_message(
-        service->impl->introspection_utils,
+    rcl_ret_t rclret = rcl_send_service_event_message(
+        service->impl->service_event_publisher,
         service_msgs__msg__ServiceEventInfo__REQUEST_RECEIVED,
         ros_request,
         request_header->request_id.sequence_number,
@@ -403,8 +401,8 @@ rcl_send_response(
   // publish out the introspected content
 
   if (rcl_service_get_options(service)->enable_service_introspection) {
-    rcl_ret_t ret = rcl_introspection_send_message(
-        service->impl->introspection_utils,
+    rcl_ret_t ret = rcl_send_service_event_message(
+        service->impl->service_event_publisher,
         service_msgs__msg__ServiceEventInfo__RESPONSE_SENT,
         ros_response,
         request_header->sequence_number,
@@ -463,6 +461,54 @@ rcl_service_set_on_new_request_callback(
     callback,
     user_data);
 }
+
+rcl_ret_t
+rcl_service_introspection_enable_server_service_events(
+    rcl_service_t * service,
+    rcl_node_t * node)
+{
+  rcl_service_event_publisher_t * service_event_publisher = service->impl->service_event_publisher;
+  if (service_event_publisher->impl->_enabled) {
+    return RCL_RET_OK;
+  }
+  rcl_ret_t ret = rcl_service_introspection_enable(
+      service_event_publisher, node, &service->impl->options.allocator);
+  if (RCL_RET_OK != ret) {
+    RCL_SET_ERROR_MSG(rmw_get_error_string().str);
+    return RCL_RET_ERROR;
+  }
+  return RCL_RET_OK;
+}
+
+rcl_ret_t
+rcl_service_introspection_disable_server_service_events(
+    rcl_service_t * service,
+    rcl_node_t * node)
+{
+  rcl_service_event_publisher_t * service_event_publisher = service->impl->service_event_publisher;
+  if (service_event_publisher->impl->_enabled) {
+    return RCL_RET_OK;
+  }
+  rcl_ret_t ret = rcl_service_introspection_disable(
+      service_event_publisher, node, &service->impl->options.allocator);
+  if (RCL_RET_OK != ret) {
+    RCL_SET_ERROR_MSG(rmw_get_error_string().str);
+    return RCL_RET_ERROR;
+  }
+  return RCL_RET_OK;
+}
+
+void
+rcl_service_introspection_enable_server_service_event_message_payload(rcl_service_t * service)
+{
+  service->impl->service_event_publisher->impl->_content_enabled = true;
+}
+
+void
+rcl_service_introspection_disable_server_service_event_message_payload(rcl_service_t * service){
+  service->impl->service_event_publisher->impl->_content_enabled = false;
+}
+
 
 #ifdef __cplusplus
 }
