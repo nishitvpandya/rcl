@@ -35,15 +35,16 @@ extern "C"
 
 
 typedef struct rcl_service_introspection_utils_s {
+  /// Handle to clock for timestamping service events
   rcl_clock_t * clock;
+  /// Handle to publisher for publishing service events
   rcl_publisher_t * publisher;
+  /// Handle to service typesupport
   const rosidl_service_type_support_t * service_type_support;
-  char * service_name;
-  char * service_type_name;
-  char * service_event_topic_name;
-  // enable/disable service introspection during runtime
+  char service_event_topic_name[255];
+  // Enable/disable service introspection during runtime
   bool _enabled;
-  // enable/disable passing along service introspection content during runtime
+  // Enable/disable passing along service introspection content during runtime
   bool _content_enabled;
 } rcl_service_introspection_utils_t;
 

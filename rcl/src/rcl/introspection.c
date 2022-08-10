@@ -41,7 +41,7 @@ rcl_service_introspection_utils_t rcl_get_zero_initialized_introspection_utils()
     .service_type_support = NULL,
     .publisher = NULL,
     .clock = NULL,
-    .service_event_topic_name = NULL,
+    .service_event_topic_name = {0},
     ._enabled = true,
     ._content_enabled = true,
   };
@@ -125,30 +125,28 @@ rcl_ret_t rcl_service_introspection_init(
   introspection_utils->service_type_support = service_type_support;
 
   // Make a publisher
-  char * service_event_topic_name = (char *)allocator->zero_allocate(
-    strlen(service_name) + strlen(RCL_SERVICE_INTROSPECTION_TOPIC_POSTFIX) + 1, sizeof(char),
-    allocator->state);
-  strcpy(service_event_topic_name, service_name);
-  strcat(service_event_topic_name, RCL_SERVICE_INTROSPECTION_TOPIC_POSTFIX);
-  introspection_utils->service_event_topic_name =
-    allocator->allocate(strlen(service_event_topic_name) + 1, allocator->state);
-  strcpy(introspection_utils->service_event_topic_name, service_event_topic_name);
+  if (strlen(service_name) > 255 - strlen(RCL_SERVICE_INTROSPECTION_TOPIC_POSTFIX)) {
+    // topics have a maximum length of 255 characters
+    RCL_SET_ERROR_MSG("Service name is too long");
+    return RCL_RET_ERROR;
+  }
+  strcpy(introspection_utils->service_event_topic_name, service_name);
+  strcat(introspection_utils->service_event_topic_name, RCL_SERVICE_INTROSPECTION_TOPIC_POSTFIX);
 
   introspection_utils->publisher = allocator->allocate(sizeof(rcl_publisher_t), allocator->state);
   *introspection_utils->publisher = rcl_get_zero_initialized_publisher();
 
   rcl_publisher_options_t publisher_options = rcl_publisher_get_default_options();
   ret = rcl_publisher_init(introspection_utils->publisher, node,
-      service_type_support->event_typesupport, service_event_topic_name, &publisher_options);
+      service_type_support->event_typesupport, introspection_utils->service_event_topic_name,
+      &publisher_options);
+
   if (RCL_RET_OK != ret) {
     RCL_SET_ERROR_MSG(rcl_get_error_string().str);
     return RCL_RET_ERROR;
   }
 
-  // make a clock
   introspection_utils->clock = clock;
-  allocator->deallocate(service_event_topic_name, allocator->state);
-
   return RCL_RET_OK;
 }
 
