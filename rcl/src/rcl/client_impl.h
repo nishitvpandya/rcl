@@ -29,7 +29,7 @@ struct rcl_client_impl_s
   rmw_qos_profile_t actual_response_subscription_qos;
   rmw_client_t * rmw_handle;
   atomic_int_least64_t sequence_number;
-  rcl_service_introspection_utils_t * introspection_utils;
+  rcl_service_event_publisher_t * introspection_utils;
 };
 
 #endif  // RCL__CLIENT_IMPL_H_

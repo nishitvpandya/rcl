@@ -34,7 +34,7 @@ extern "C"
 #define RCL_SERVICE_INTROSPECTION_PUBLISH_SERVICE_EVENT_CONTENT_PARAMETER "publish_service_content"
 
 
-typedef struct rcl_service_introspection_utils_s {
+typedef struct rcl_service_event_publisher_s {
   /// Handle to clock for timestamping service events
   rcl_clock_t * clock;
   /// Handle to publisher for publishing service events
@@ -46,7 +46,7 @@ typedef struct rcl_service_introspection_utils_s {
   bool _enabled;
   // Enable/disable passing along service introspection content during runtime
   bool _content_enabled;
-} rcl_service_introspection_utils_t;
+} rcl_service_event_publisher_t;
 
 RCL_PUBLIC
 RCL_WARN_UNUSED
@@ -59,14 +59,14 @@ rcl_service_typesupport_to_message_typesupport(
 
 RCL_PUBLIC
 RCL_WARN_UNUSED
-rcl_service_introspection_utils_t
+rcl_service_event_publisher_t
 rcl_get_zero_initialized_introspection_utils();
 
 RCL_PUBLIC
 RCL_WARN_UNUSED
 rcl_ret_t
 rcl_service_introspection_init(
-  rcl_service_introspection_utils_t * introspection_utils,
+  rcl_service_event_publisher_t * introspection_utils,
   const rosidl_service_type_support_t * service_type_support,
   const char * service_name,
   const rcl_node_t * node,
@@ -77,7 +77,7 @@ RCL_PUBLIC
 RCL_WARN_UNUSED
 rcl_ret_t
 rcl_service_introspection_fini(
-  rcl_service_introspection_utils_t * introspection_utils,
+  rcl_service_event_publisher_t * introspection_utils,
   rcl_allocator_t * allocator,
   rcl_node_t *  node);
 
@@ -85,16 +85,12 @@ RCL_PUBLIC
 RCL_WARN_UNUSED
 rcl_ret_t
 rcl_introspection_send_message(
-  const rcl_service_introspection_utils_t * introspection_utils,
+  const rcl_service_event_publisher_t * introspection_utils,
   uint8_t event_type,
   const void * ros_response_request,
   int64_t sequence_number,
   const uint8_t uuid[16], // uuid is uint8_t but the guid is int8_t
   const rcl_allocator_t * allocator);
-
-
-
-
 
 /*  Enables service introspection by reconstructing the introspection clock and publisher
  *  
@@ -104,7 +100,7 @@ RCL_LOCAL
 RCL_WARN_UNUSED
 rcl_ret_t
 rcl_service_introspection_enable(
-    rcl_service_introspection_utils_t * introspection_utils,
+    rcl_service_event_publisher_t * introspection_utils,
     const rcl_node_t * node,
     rcl_allocator_t * allocator);
 
@@ -120,7 +116,7 @@ RCL_LOCAL
 RCL_WARN_UNUSED
 rcl_ret_t
 rcl_service_introspection_disable(
-    rcl_service_introspection_utils_t * introspection_utils,
+    rcl_service_event_publisher_t * introspection_utils,
     rcl_node_t * node,
     const rcl_allocator_t * allocator);
 

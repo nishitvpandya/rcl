@@ -26,7 +26,7 @@ struct rcl_service_impl_s
   rmw_qos_profile_t actual_request_subscription_qos;
   rmw_qos_profile_t actual_response_publisher_qos;
   rmw_service_t * rmw_handle;
-  rcl_service_introspection_utils_t * introspection_utils;
+  rcl_service_event_publisher_t * introspection_utils;
 };
 
 #endif  // RCL__SERVICE_IMPL_H_

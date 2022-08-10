@@ -35,9 +35,9 @@ extern "C" {
 #include "unique_identifier_msgs/msg/uuid.h"
 #include "service_msgs/msg/service_event_info.h"
 
-rcl_service_introspection_utils_t rcl_get_zero_initialized_introspection_utils()
+rcl_service_event_publisher_t rcl_get_zero_initialized_introspection_utils()
 {
-  static rcl_service_introspection_utils_t null_introspection_utils = {
+  static rcl_service_event_publisher_t null_introspection_utils = {
     .service_type_support = NULL,
     .publisher = NULL,
     .clock = NULL,
@@ -110,7 +110,7 @@ rcl_ret_t rcl_service_typesupport_to_message_typesupport(
 }
 
 rcl_ret_t rcl_service_introspection_init(
-  rcl_service_introspection_utils_t * introspection_utils,
+  rcl_service_event_publisher_t * introspection_utils,
   const rosidl_service_type_support_t * service_type_support,
   const char * service_name,
   const rcl_node_t * node,
@@ -123,6 +123,7 @@ rcl_ret_t rcl_service_introspection_init(
 
   // Can do this because typesupports have static lifetimes
   introspection_utils->service_type_support = service_type_support;
+
 
   // Make a publisher
   if (strlen(service_name) > 255 - strlen(RCL_SERVICE_INTROSPECTION_TOPIC_POSTFIX)) {
@@ -151,7 +152,7 @@ rcl_ret_t rcl_service_introspection_init(
 }
 
 rcl_ret_t rcl_service_introspection_fini(
-  rcl_service_introspection_utils_t * introspection_utils, rcl_allocator_t * allocator,
+  rcl_service_event_publisher_t * introspection_utils, rcl_allocator_t * allocator,
   rcl_node_t * node)
 {
   rcl_ret_t ret;
@@ -166,16 +167,14 @@ rcl_ret_t rcl_service_introspection_fini(
   if (NULL != introspection_utils->publisher) {
     allocator->deallocate(introspection_utils->publisher, allocator->state);
   }
-  allocator->deallocate(introspection_utils->service_event_topic_name, allocator->state);
 
   introspection_utils->publisher = NULL;
-  introspection_utils->service_event_topic_name = NULL;
 
   return RCL_RET_OK;
 }
 
 rcl_ret_t rcl_introspection_send_message(
-  const rcl_service_introspection_utils_t * introspection_utils, const uint8_t event_type,
+  const rcl_service_event_publisher_t * introspection_utils, const uint8_t event_type,
   const void * ros_response_request, const int64_t sequence_number, const uint8_t uuid[16],
   const rcl_allocator_t * allocator)
 {
@@ -239,7 +238,7 @@ rcl_ret_t rcl_introspection_send_message(
 }
 
 rcl_ret_t rcl_service_introspection_enable(
-  rcl_service_introspection_utils_t * introspection_utils, const rcl_node_t * node,
+  rcl_service_event_publisher_t * introspection_utils, const rcl_node_t * node,
   rcl_allocator_t * allocator)
 {
   rcl_ret_t ret;
@@ -262,7 +261,7 @@ rcl_ret_t rcl_service_introspection_enable(
 }
 
 rcl_ret_t rcl_service_introspection_disable(
-  rcl_service_introspection_utils_t * introspection_utils, rcl_node_t * node,
+  rcl_service_event_publisher_t * introspection_utils, rcl_node_t * node,
   const rcl_allocator_t * allocator)
 {
   rcl_ret_t ret;
@@ -282,7 +281,7 @@ rcl_ret_t rcl_service_introspection_disable(
 rcl_ret_t rcl_service_introspection_configure_service_events(
   rcl_service_t * service, rcl_node_t * node, bool enable)
 {
-  rcl_service_introspection_utils_t * introspection_utils = service->impl->introspection_utils;
+  rcl_service_event_publisher_t * introspection_utils = service->impl->introspection_utils;
 
   if (enable == introspection_utils->_enabled) {
     return RCL_RET_OK;
@@ -307,7 +306,7 @@ rcl_ret_t rcl_service_introspection_configure_service_events(
 rcl_ret_t rcl_service_introspection_configure_client_events(
   rcl_client_t * client, rcl_node_t * node, bool enable)
 {
-  rcl_service_introspection_utils_t * introspection_utils = client->impl->introspection_utils;
+  rcl_service_event_publisher_t * introspection_utils = client->impl->introspection_utils;
 
   if (enable == introspection_utils->_enabled) {
     return RCL_RET_OK;

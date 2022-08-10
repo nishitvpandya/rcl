@@ -145,8 +145,8 @@ rcl_service_init(
 
   service->impl->introspection_utils = NULL;
   if (options->enable_service_introspection) {
-    service->impl->introspection_utils = (rcl_service_introspection_utils_t *) allocator->allocate(
-        sizeof(rcl_service_introspection_utils_t), allocator->state);
+    service->impl->introspection_utils = (rcl_service_event_publisher_t *) allocator->allocate(
+        sizeof(rcl_service_event_publisher_t), allocator->state);
     *service->impl->introspection_utils = rcl_get_zero_initialized_introspection_utils();
     ret = rcl_service_introspection_init(
         service->impl->introspection_utils, type_support, remapped_service_name, node,
