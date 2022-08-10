@@ -77,7 +77,7 @@ rcl_ret_t
 rcl_service_event_publisher_fini(
   rcl_service_event_publisher_t * service_event_publisher,
   rcl_allocator_t * allocator,
-  rcl_node_t *  node);
+  rcl_node_t * node);
 
 RCL_LOCAL
 RCL_WARN_UNUSED
