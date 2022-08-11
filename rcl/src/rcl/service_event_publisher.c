@@ -168,21 +168,19 @@ rcl_ret_t rcl_service_event_publisher_fini(
   rcl_service_event_publisher_t * service_event_publisher,
   rcl_allocator_t * allocator,
   rcl_node_t * node)
-{
-  rcl_ret_t ret;
+{ 
+  // TOOD(ihasdapie): check for input nulls
   if (NULL != service_event_publisher->impl->publisher) {
-    ret = rcl_publisher_fini(service_event_publisher->impl->publisher, node);
+    rcl_ret_t ret = rcl_publisher_fini(service_event_publisher->impl->publisher, node);
+    allocator->deallocate(service_event_publisher->impl->publisher, allocator->state);
+    service_event_publisher->impl->publisher = NULL;
     if (RCL_RET_OK != ret) {
       RCL_SET_ERROR_MSG(rcl_get_error_string().str);
-      return RCL_RET_ERROR;
+      return ret;
     }
   }
-  
-  if (NULL != service_event_publisher->impl->publisher) {
-    allocator->deallocate(service_event_publisher->impl->publisher, allocator->state);
-  }
-
-  service_event_publisher->impl->publisher = NULL;
+  allocator->deallocate(service_event_publisher->impl, allocator->state);
+  service_event_publisher->impl = NULL;
 
   return RCL_RET_OK;
 }
@@ -292,12 +290,12 @@ rcl_ret_t rcl_service_introspection_disable(
   }
   rcl_ret_t ret;
   ret = rcl_publisher_fini(service_event_publisher->impl->publisher, node);
+  allocator->deallocate(service_event_publisher->impl->publisher, allocator->state);
+  service_event_publisher->impl->publisher = NULL;
   if (RCL_RET_OK != ret) {
     RCL_SET_ERROR_MSG(rmw_get_error_string().str);
     return ret;
   }
-  allocator->deallocate(service_event_publisher->impl->publisher, allocator->state);
-  service_event_publisher->impl->publisher = NULL;
   return RCL_RET_OK;
 }
 
