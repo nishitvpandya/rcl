@@ -256,19 +256,24 @@ rcl_ret_t rcl_service_introspection_enable(
   rcl_service_event_publisher_t * service_event_publisher, const rcl_node_t * node,
   rcl_allocator_t * allocator)
 {
-  rcl_ret_t ret;
-
+  RCL_CHECK_ALLOCATOR_WITH_MSG(allocator, "allocator is invalid", return RCL_RET_ERROR);
+  RCL_CHECK_ARGUMENT_FOR_NULL(service_event_publisher, RCL_RET_ERROR);
+  RCL_CHECK_ARGUMENT_FOR_NULL(node, RCL_RET_ERROR);
+  
+  // Only enable if not already enabled
+  if (NULL != service_event_publisher->impl->publisher) {
+    return RCL_RET_OK;
+  }
   service_event_publisher->impl->publisher = allocator->allocate(sizeof(rcl_publisher_t), allocator->state);
   *service_event_publisher->impl->publisher = rcl_get_zero_initialized_publisher();
-
   rcl_publisher_options_t publisher_options = rcl_publisher_get_default_options();
-  ret = rcl_publisher_init(
+  rcl_ret_t ret = rcl_publisher_init(
     service_event_publisher->impl->publisher, node, 
     service_event_publisher->impl->service_type_support->event_typesupport,
     service_event_publisher->impl->service_event_topic_name, &publisher_options);
   if (RCL_RET_OK != ret) {
     RCL_SET_ERROR_MSG(rcl_get_error_string().str);
-    return RCL_RET_ERROR;
+    return ret;
   }
   return RCL_RET_OK;
 }
@@ -277,13 +282,20 @@ rcl_ret_t rcl_service_introspection_disable(
   rcl_service_event_publisher_t * service_event_publisher, rcl_node_t * node,
   const rcl_allocator_t * allocator)
 {
+  RCL_CHECK_ALLOCATOR_WITH_MSG(allocator, "allocator is invalid", return RCL_RET_ERROR);
+  RCL_CHECK_ARGUMENT_FOR_NULL(service_event_publisher, RCL_RET_ERROR);
+  RCL_CHECK_ARGUMENT_FOR_NULL(node, RCL_RET_ERROR);
+
+  // Only disable if enabled
+  if (NULL == service_event_publisher->impl->publisher) {
+    return RCL_RET_OK;
+  }
   rcl_ret_t ret;
   ret = rcl_publisher_fini(service_event_publisher->impl->publisher, node);
   if (RCL_RET_OK != ret) {
     RCL_SET_ERROR_MSG(rmw_get_error_string().str);
-    return RCL_RET_ERROR;
+    return ret;
   }
-
   allocator->deallocate(service_event_publisher->impl->publisher, allocator->state);
   service_event_publisher->impl->publisher = NULL;
   return RCL_RET_OK;

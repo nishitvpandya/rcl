@@ -454,17 +454,8 @@ rcl_service_introspection_enable_server_service_events(
     rcl_service_t * service,
     rcl_node_t * node)
 {
-  rcl_service_event_publisher_t * service_event_publisher = service->impl->service_event_publisher;
-  if (NULL != service_event_publisher->impl->publisher) {
-    return RCL_RET_OK;
-  }
-  rcl_ret_t ret = rcl_service_introspection_enable(
-      service_event_publisher, node, &service->impl->options.allocator);
-  if (RCL_RET_OK != ret) {
-    RCL_SET_ERROR_MSG(rmw_get_error_string().str);
-    return RCL_RET_ERROR;
-  }
-  return RCL_RET_OK;
+  return rcl_service_introspection_enable(
+      service->impl->service_event_publisher, node, &service->impl->options.allocator);
 }
 
 rcl_ret_t
@@ -472,17 +463,8 @@ rcl_service_introspection_disable_server_service_events(
     rcl_service_t * service,
     rcl_node_t * node)
 {
-  rcl_service_event_publisher_t * service_event_publisher = service->impl->service_event_publisher;
-  if (NULL == service_event_publisher->impl->publisher) {
-    return RCL_RET_OK;
-  }
-  rcl_ret_t ret = rcl_service_introspection_disable(
-      service_event_publisher, node, &service->impl->options.allocator);
-  if (RCL_RET_OK != ret) {
-    RCL_SET_ERROR_MSG(rmw_get_error_string().str);
-    return RCL_RET_ERROR;
-  }
-  return RCL_RET_OK;
+  return rcl_service_introspection_disable(
+      service->impl->service_event_publisher, node, &service->impl->options.allocator);
 }
 
 void
