@@ -150,13 +150,11 @@ rcl_service_init(
     ret = rcl_service_event_publisher_init(
         service->impl->service_event_publisher, type_support, remapped_service_name, node,
         options->clock, allocator);
+    if (RCL_RET_OK != ret) {
+      RCL_SET_ERROR_MSG(rcl_get_error_string().str);
+      goto fail;
+    }
   }
-
-  if (RCL_RET_OK != ret) {
-    RCL_SET_ERROR_MSG(rcl_get_error_string().str);
-    goto fail;
-  }
-
   // get actual qos, and store it
   rmw_ret_t rmw_ret = rmw_service_request_subscription_get_actual_qos(
     service->impl->rmw_handle,
