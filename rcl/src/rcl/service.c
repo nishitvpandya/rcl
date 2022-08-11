@@ -466,7 +466,7 @@ rcl_service_introspection_enable_server_service_events(
     rcl_node_t * node)
 {
   rcl_service_event_publisher_t * service_event_publisher = service->impl->service_event_publisher;
-  if (service_event_publisher->impl->_enabled) {
+  if (NULL != service_event_publisher->impl->publisher) {
     return RCL_RET_OK;
   }
   rcl_ret_t ret = rcl_service_introspection_enable(
@@ -484,7 +484,7 @@ rcl_service_introspection_disable_server_service_events(
     rcl_node_t * node)
 {
   rcl_service_event_publisher_t * service_event_publisher = service->impl->service_event_publisher;
-  if (service_event_publisher->impl->_enabled) {
+  if (NULL == service_event_publisher->impl->publisher) {
     return RCL_RET_OK;
   }
   rcl_ret_t ret = rcl_service_introspection_disable(

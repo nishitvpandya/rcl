@@ -135,7 +135,6 @@ rcl_ret_t rcl_service_event_publisher_init(
     return RCL_RET_BAD_ALLOC);
 
   service_event_publisher->impl->clock = clock;
-  service_event_publisher->impl->_enabled = true;
   service_event_publisher->impl->_content_enabled = true;
   // Typesupports have static lifetimes
   service_event_publisher->impl->service_type_support = service_type_support;
@@ -195,9 +194,10 @@ rcl_ret_t rcl_send_service_event_message(
   const void * ros_response_request, const int64_t sequence_number, const uint8_t uuid[16],
   const rcl_allocator_t * allocator)
 {
-  // Early exit of service introspection if it isn't enabled
-  // TODO(ihasdapie): Different return code?
-  if (!service_event_publisher->impl->_enabled) return RCL_RET_OK;
+  // early exit if service introspection disabled during runtime
+  if (NULL == service_event_publisher->impl->publisher){
+    return RCL_RET_OK;
+  }
 
   rcl_ret_t ret;
 
@@ -272,8 +272,6 @@ rcl_ret_t rcl_service_introspection_enable(
     RCL_SET_ERROR_MSG(rcl_get_error_string().str);
     return RCL_RET_ERROR;
   }
-
-  service_event_publisher->impl->_enabled = true;
   return RCL_RET_OK;
 }
 
@@ -290,8 +288,6 @@ rcl_ret_t rcl_service_introspection_disable(
 
   allocator->deallocate(service_event_publisher->impl->publisher, allocator->state);
   service_event_publisher->impl->publisher = NULL;
-
-  service_event_publisher->impl->_enabled = false;
   return RCL_RET_OK;
 }
 
