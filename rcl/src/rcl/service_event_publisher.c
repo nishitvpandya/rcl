@@ -13,19 +13,19 @@
 // limitations under the License.
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
+
+#include <string.h>
 
 #include "service_event_publisher.h"
 #include "rcl/service_introspection.h"
 
-#include <string.h>
-
-#include "rcl/macros.h"
 #include "./client_impl.h"
 #include "./service_impl.h"
-#include "builtin_interfaces/msg/time.h"
-#include "dlfcn.h"
+
+#include "rcl/macros.h"
 #include "rcl/error_handling.h"
 #include "rcutils/logging_macros.h"
 #include "rcutils/macros.h"
@@ -34,7 +34,6 @@ extern "C" {
 #include "rosidl_runtime_c/primitives_sequence_functions.h"
 #include "rosidl_runtime_c/string_functions.h"
 #include "rosidl_typesupport_c/type_support_map.h"
-#include "unique_identifier_msgs/msg/uuid.h"
 #include "service_msgs/msg/service_event_info.h"
 
 rcl_service_event_publisher_t rcl_get_zero_initialized_service_event_publisher()
@@ -126,7 +125,6 @@ rcl_ret_t rcl_service_event_publisher_init(
     return RCL_RET_ALREADY_INIT;
   }
 
-  rcl_ret_t ret;
 
   service_event_publisher->impl = (rcl_service_event_publisher_impl_t *) allocator->allocate(
       sizeof(rcl_service_event_publisher_impl_t), allocator->state);
@@ -155,7 +153,7 @@ rcl_ret_t rcl_service_event_publisher_init(
 
   *service_event_publisher->impl->publisher = rcl_get_zero_initialized_publisher();
   rcl_publisher_options_t publisher_options = rcl_publisher_get_default_options();
-  ret = rcl_publisher_init(service_event_publisher->impl->publisher, node,
+  rcl_ret_t ret = rcl_publisher_init(service_event_publisher->impl->publisher, node,
       service_type_support->event_typesupport, service_event_publisher->impl->service_event_topic_name,
       &publisher_options);
 
@@ -224,12 +222,12 @@ rcl_ret_t rcl_send_service_event_message(
     case service_msgs__msg__ServiceEventInfo__REQUEST_RECEIVED:
     case service_msgs__msg__ServiceEventInfo__REQUEST_SENT:
       service_introspection_message = service_event_publisher->impl->service_type_support->introspection_message_create_handle(
-          &info, allocator, ros_response_request, NULL, service_event_publisher->impl->_content_enabled); // Add switch depending on req/resp
+          &info, allocator, ros_response_request, NULL, service_event_publisher->impl->_content_enabled);
           break;
     case service_msgs__msg__ServiceEventInfo__RESPONSE_RECEIVED:
-    case service_msgs__msg__ServiceEventInfo__RESPONSE_SENT: // error on send_response
+    case service_msgs__msg__ServiceEventInfo__RESPONSE_SENT:
       service_introspection_message = service_event_publisher->impl->service_type_support->introspection_message_create_handle(
-          &info, allocator, NULL, ros_response_request, service_event_publisher->impl->_content_enabled); // Add switch depending on req/resp
+          &info, allocator, NULL, ros_response_request, service_event_publisher->impl->_content_enabled);
           break;
   }
 

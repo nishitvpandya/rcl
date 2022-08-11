@@ -17,7 +17,6 @@
 #ifndef RCL__SERVICE_H_
 #define RCL__SERVICE_H_
 
-#include "rcl/time.h"
 #ifdef __cplusplus
 extern "C"
 {
@@ -28,6 +27,7 @@ extern "C"
 #include "rcl/event_callback.h"
 #include "rcl/macros.h"
 #include "rcl/node.h"
+#include "rcl/time.h"
 #include "rcl/visibility_control.h"
 
 /// Internal rcl implementation struct.
@@ -203,7 +203,6 @@ rcl_service_fini(rcl_service_t * service, rcl_node_t * node);
  *
  * - qos = rmw_qos_profile_services_default
  * - allocator = rcl_get_default_allocator()
- * - 
  */
 RCL_PUBLIC
 RCL_WARN_UNUSED

@@ -94,7 +94,6 @@ rcl_service_init(
 
   // Expand and remap the given service name.
   char * remapped_service_name = NULL;
-
   rcl_ret_t ret = rcl_node_resolve_name(
     node,
     service_name,
@@ -110,14 +109,12 @@ rcl_service_init(
     }
     goto cleanup;
   }
-
   RCUTILS_LOG_DEBUG_NAMED(
     ROS_PACKAGE_NAME, "Expanded and remapped service name '%s'", remapped_service_name);
 
   // Allocate space for the implementation struct.
   service->impl = (rcl_service_impl_t *)allocator->allocate(
     sizeof(rcl_service_impl_t), allocator->state);
-      
   RCL_CHECK_FOR_NULL_WITH_MSG(
     service->impl, "allocating memory failed", ret = RCL_RET_BAD_ALLOC; goto cleanup);
 
@@ -127,8 +124,6 @@ rcl_service_init(
       "Warning: Setting QoS durability to 'transient local' for service servers "
       "can cause them to receive requests from clients that have since terminated.");
   }
-
-
   // Fill out implementation struct.
   // rmw handle (create rmw service)
   // TODO(wjwwood): pass along the allocator to rmw when it supports it
@@ -251,7 +246,6 @@ rcl_service_fini(rcl_service_t * service, rcl_node_t * node)
       result = RCL_RET_ERROR;
     }
   }
-
   RCUTILS_LOG_DEBUG_NAMED(ROS_PACKAGE_NAME, "Service finalized");
   return result;
 }
@@ -293,7 +287,6 @@ rcl_service_get_service_type_name(const rosidl_service_type_support_t * service_
   return service_type_name;
 }
 
-
 const rcl_service_options_t *
 rcl_service_get_options(const rcl_service_t * service)
 {
@@ -326,7 +319,6 @@ rcl_take_request_with_info(
   RCL_CHECK_ARGUMENT_FOR_NULL(ros_request, RCL_RET_INVALID_ARGUMENT);
   const rcl_service_options_t * options = rcl_service_get_options(service);
   RCL_CHECK_FOR_NULL_WITH_MSG(options, "Failed to get service options", return RCL_RET_ERROR);
-
 
   bool taken = false;
   rmw_ret_t ret = rmw_take_request(
@@ -372,7 +364,6 @@ rcl_take_request(
   return ret;
 }
 
-
 rcl_ret_t
 rcl_send_response(
   const rcl_service_t * service,
@@ -387,17 +378,15 @@ rcl_send_response(
   RCL_CHECK_ARGUMENT_FOR_NULL(ros_response, RCL_RET_INVALID_ARGUMENT);
   const rcl_service_options_t * options = rcl_service_get_options(service);
   RCL_CHECK_FOR_NULL_WITH_MSG(options, "Failed to get service options", return RCL_RET_ERROR);
-
   
   if (rmw_send_response(
-      service->impl->rmw_handle, request_header, ros_response) != RMW_RET_OK)
+        service->impl->rmw_handle, request_header, ros_response) != RMW_RET_OK)
   {
     RCL_SET_ERROR_MSG(rmw_get_error_string().str);
     return RCL_RET_ERROR;
   }
 
   // publish out the introspected content
-
   if (rcl_service_get_options(service)->enable_service_introspection) {
     rcl_ret_t ret = rcl_send_service_event_message(
         service->impl->service_event_publisher,
@@ -506,7 +495,6 @@ void
 rcl_service_introspection_disable_server_service_event_message_payload(rcl_service_t * service){
   service->impl->service_event_publisher->impl->_content_enabled = false;
 }
-
 
 #ifdef __cplusplus
 }

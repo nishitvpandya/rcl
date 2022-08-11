@@ -262,7 +262,6 @@ rcl_send_request(const rcl_client_t * client, const void * ros_request, int64_t 
     return RCL_RET_ERROR;
   }
   rcutils_atomic_exchange_int64_t(&client->impl->sequence_number, *sequence_number);
-
   
   if (rcl_client_get_options(client)->enable_service_introspection) {
     rcl_ret_t ret = rcl_send_service_event_message(
@@ -272,13 +271,11 @@ rcl_send_request(const rcl_client_t * client, const void * ros_request, int64_t 
         *sequence_number,
         client->impl->rmw_handle->writer_guid,
         &client->impl->options.allocator);
-
     if (RCL_RET_OK != ret) {
       RCL_SET_ERROR_MSG(rcl_get_error_string().str);
       return RCL_RET_ERROR;
     }
   }
-
   return RCL_RET_OK;
 }
 
@@ -319,13 +316,11 @@ rcl_take_response_with_info(
       request_header->request_id.sequence_number,
       client->impl->rmw_handle->writer_guid,
       &client->impl->options.allocator);
-
     if (RCL_RET_OK != ret) {
       RCL_SET_ERROR_MSG(rcl_get_error_string().str);
       return RCL_RET_ERROR;
     }
   }
-
   return RCL_RET_OK;
 }
 
