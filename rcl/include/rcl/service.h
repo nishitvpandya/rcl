@@ -28,6 +28,7 @@ extern "C"
 #include "rcl/macros.h"
 #include "rcl/node.h"
 #include "rcl/time.h"
+#include "rcl/publisher.h"
 #include "rcl/visibility_control.h"
 
 /// Internal rcl implementation struct.
@@ -45,6 +46,8 @@ typedef struct rcl_service_options_s
 {
   /// Middleware quality of service settings for the service.
   rmw_qos_profile_t qos;
+  /// Publisher options for the service event publisher
+  rcl_publisher_options_t event_publisher_options;
   /// Custom allocator for the service, used for incidental allocations.
   /** For default behavior (malloc/free), see: rcl_get_default_allocator() */
   rcl_allocator_t allocator;
@@ -202,7 +205,10 @@ rcl_service_fini(rcl_service_t * service, rcl_node_t * node);
  * The defaults are:
  *
  * - qos = rmw_qos_profile_services_default
+ * - event_publisher_qos = rcl_publisher_get_default_options()
  * - allocator = rcl_get_default_allocator()
+ * - clock = NULL
+ * - enable_service_introspection = False
  */
 RCL_PUBLIC
 RCL_WARN_UNUSED

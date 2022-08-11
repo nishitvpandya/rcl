@@ -144,7 +144,7 @@ rcl_service_init(
     *service->impl->service_event_publisher = rcl_get_zero_initialized_service_event_publisher();
     ret = rcl_service_event_publisher_init(
         service->impl->service_event_publisher, type_support, remapped_service_name, node,
-        options->clock, allocator);
+        options->clock, options->event_publisher_options, allocator);
     if (RCL_RET_OK != ret) {
       RCL_SET_ERROR_MSG(rcl_get_error_string().str);
       goto fail;
@@ -257,6 +257,7 @@ rcl_service_get_default_options()
   static rcl_service_options_t default_options;
   // Must set the allocator and qos after because they are not a compile time constant.
   default_options.qos = rmw_qos_profile_services_default;
+  default_options.event_publisher_options = rcl_publisher_get_default_options();
   default_options.allocator = rcl_get_default_allocator();
   default_options.clock = NULL;
   default_options.enable_service_introspection = false;
@@ -455,7 +456,9 @@ rcl_service_introspection_enable_server_service_events(
     rcl_node_t * node)
 {
   return rcl_service_introspection_enable(
-      service->impl->service_event_publisher, node, &service->impl->options.allocator);
+      service->impl->service_event_publisher, node,
+      rcl_service_get_options(service)->event_publisher_options,
+      &rcl_service_get_options(service)->allocator);
 }
 
 rcl_ret_t

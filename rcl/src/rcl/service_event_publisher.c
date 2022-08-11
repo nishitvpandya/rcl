@@ -27,6 +27,7 @@ extern "C"
 
 #include "rcl/macros.h"
 #include "rcl/error_handling.h"
+#include "rcl/publisher.h"
 #include "rcutils/logging_macros.h"
 #include "rcutils/macros.h"
 #include "rcutils/shared_library.h"
@@ -109,6 +110,7 @@ rcl_ret_t rcl_service_event_publisher_init(
   const char * service_name,
   const rcl_node_t * node,
   rcl_clock_t * clock,
+  rcl_publisher_options_t publisher_options,
   rcl_allocator_t * allocator)
 {
   RCL_CHECK_ALLOCATOR_WITH_MSG(allocator, "allocator is invalid", return RCL_RET_ERROR);
@@ -152,7 +154,6 @@ rcl_ret_t rcl_service_event_publisher_init(
     return RCL_RET_BAD_ALLOC);
 
   *service_event_publisher->impl->publisher = rcl_get_zero_initialized_publisher();
-  rcl_publisher_options_t publisher_options = rcl_publisher_get_default_options();
   rcl_ret_t ret = rcl_publisher_init(service_event_publisher->impl->publisher, node,
       service_type_support->event_typesupport, service_event_publisher->impl->service_event_topic_name,
       &publisher_options);
@@ -251,7 +252,9 @@ rcl_ret_t rcl_send_service_event_message(
 }
 
 rcl_ret_t rcl_service_introspection_enable(
-  rcl_service_event_publisher_t * service_event_publisher, const rcl_node_t * node,
+  rcl_service_event_publisher_t * service_event_publisher,
+  const rcl_node_t * node,
+  rcl_publisher_options_t publisher_options,
   rcl_allocator_t * allocator)
 {
   RCL_CHECK_ALLOCATOR_WITH_MSG(allocator, "allocator is invalid", return RCL_RET_ERROR);
@@ -264,7 +267,6 @@ rcl_ret_t rcl_service_introspection_enable(
   }
   service_event_publisher->impl->publisher = allocator->allocate(sizeof(rcl_publisher_t), allocator->state);
   *service_event_publisher->impl->publisher = rcl_get_zero_initialized_publisher();
-  rcl_publisher_options_t publisher_options = rcl_publisher_get_default_options();
   rcl_ret_t ret = rcl_publisher_init(
     service_event_publisher->impl->publisher, node, 
     service_event_publisher->impl->service_type_support->event_typesupport,

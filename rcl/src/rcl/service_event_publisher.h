@@ -20,9 +20,9 @@ extern "C"
 {
 #endif
 
-#include "rcl/publisher.h"
-#include "rcl/service.h"
 #include "rcl/client.h"
+#include "rcl/service.h"
+#include "rcl/publisher.h"
 #include "rcl/time.h"
 #include "rmw/rmw.h"
 #include "stdbool.h"
@@ -69,6 +69,7 @@ rcl_service_event_publisher_init(
   const char * service_name,
   const rcl_node_t * node,
   rcl_clock_t * clock,
+  rcl_publisher_options_t publisher_options,
   rcl_allocator_t * allocator);
 
 RCL_LOCAL
@@ -100,6 +101,7 @@ rcl_ret_t
 rcl_service_introspection_enable(
   rcl_service_event_publisher_t * service_event_publisher,
   const rcl_node_t * node,
+  rcl_publisher_options_t publisher_options,
   rcl_allocator_t * allocator);
 
 /*  Disables service introspection by fini-ing and freeing the introspection clock and publisher

@@ -27,6 +27,7 @@ extern "C"
 #include "rcl/event_callback.h"
 #include "rcl/macros.h"
 #include "rcl/node.h"
+#include "rcl/publisher.h"
 #include "rcl/time.h"
 #include "rcl/visibility_control.h"
 
@@ -45,6 +46,8 @@ typedef struct rcl_client_options_s
 {
   /// Middleware quality of service settings for the client.
   rmw_qos_profile_t qos;
+  /// Publisher options for the service event publisher
+  rcl_publisher_options_t event_publisher_options;
   /// Custom allocator for the client, used for incidental allocations.
   /** For default behavior (malloc/free), use: rcl_get_default_allocator() */
   rcl_allocator_t allocator;
@@ -199,7 +202,10 @@ rcl_client_fini(rcl_client_t * client, rcl_node_t * node);
  * The defaults are:
  *
  * - qos = rmw_qos_profile_services_default
+ * - event_publisher_qos = rcl_publisher_get_default_options()
  * - allocator = rcl_get_default_allocator()
+ * - clock = NULL
+ * - enable_service_introspection = False
  */
 RCL_PUBLIC
 RCL_WARN_UNUSED

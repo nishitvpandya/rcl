@@ -24,6 +24,7 @@ extern "C"
 
 #include "rcl/error_handling.h"
 #include "rcl/node.h"
+#include "rcl/publisher.h"
 #include "rcutils/logging_macros.h"
 #include "rcutils/macros.h"
 #include "rmw/error_handling.h"
@@ -116,7 +117,7 @@ rcl_client_init(
     *client->impl->service_event_publisher = rcl_get_zero_initialized_service_event_publisher();
     ret = rcl_service_event_publisher_init(
         client->impl->service_event_publisher, type_support, remapped_service_name, node,
-        options->clock, allocator);
+        options->clock, options->event_publisher_options, allocator);
   }
   // get actual qos, and store it
   rmw_ret_t rmw_ret = rmw_client_request_publisher_get_actual_qos(
@@ -210,6 +211,7 @@ rcl_client_get_default_options()
   static rcl_client_options_t default_options;
   // Must set the allocator and qos after because they are not a compile time constant.
   default_options.qos = rmw_qos_profile_services_default;
+  default_options.event_publisher_options = rcl_publisher_get_default_options();
   default_options.allocator = rcl_get_default_allocator();
   default_options.clock = NULL;
   default_options.enable_service_introspection = false;
@@ -389,7 +391,9 @@ rcl_service_introspection_enable_client_service_events(
     rcl_node_t * node)
 {
   return rcl_service_introspection_enable(
-      client->impl->service_event_publisher, node, &client->impl->options.allocator);
+      client->impl->service_event_publisher, node,
+      rcl_client_get_options(client)->event_publisher_options,
+      &rcl_client_get_options(client)->allocator);
 }
 
 rcl_ret_t
