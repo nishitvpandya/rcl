@@ -241,7 +241,7 @@ rcl_service_fini(rcl_service_t * service, rcl_node_t * node)
       ret = rcl_service_event_publisher_fini(service->impl->service_event_publisher, node);
       if (RCL_RET_OK != ret) {
         RCL_SET_ERROR_MSG(rcl_get_error_string().str);
-        result = RCL_RET_ERROR;
+        result = ret;
       }
       allocator.deallocate(service->impl->service_event_publisher, allocator.state);
       service->impl->service_event_publisher = NULL;
