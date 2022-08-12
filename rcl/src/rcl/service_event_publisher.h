@@ -95,6 +95,11 @@ rcl_service_event_publisher_fini(
 
 RCL_LOCAL
 bool
+rcl_service_event_publisher_is_valid_without_publisher(
+  const rcl_service_event_publisher_t * service_event_publisher);
+
+RCL_LOCAL
+bool
 rcl_service_event_publisher_is_valid(const rcl_service_event_publisher_t * service_event_publisher);
 
 RCL_LOCAL
