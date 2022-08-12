@@ -289,12 +289,9 @@ rcl_ret_t rcl_send_service_event_message(
     .event_type = event_type,
     .stamp_sec = RCL_NS_TO_S(now),
     .stamp_nanosec = now % (1000LL * 1000LL * 1000LL),
-    .client_id = {uuid[0], uuid[1], uuid[2], uuid[3], uuid[4], uuid[5], uuid[6], uuid[7],
-      uuid[8], uuid[9], uuid[10], uuid[11], uuid[12], uuid[13], uuid[14], uuid[15]}, // TODO(ihasdapie): shorthand?
     .sequence_number = sequence_number,
   };
-
-
+  memcpy(info.client_id, uuid, 16);
   
   void * service_introspection_message;
   switch (event_type) {
