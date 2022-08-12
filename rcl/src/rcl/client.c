@@ -208,6 +208,17 @@ rcl_client_fini(rcl_client_t * client, rcl_node_t * node)
       RCL_SET_ERROR_MSG(rmw_get_error_string().str);
       result = RCL_RET_ERROR;
     }
+
+    if (client->impl->service_event_publisher) {
+      ret = rcl_service_event_publisher_fini(client->impl->service_event_publisher, node);
+      if (RCL_RET_OK != ret) {
+        RCL_SET_ERROR_MSG(rcl_get_error_string().str);
+        result = ret;
+      }
+      allocator.deallocate(client->impl->service_event_publisher, allocator.state);
+      client->impl->service_event_publisher = NULL;
+    }
+
     allocator.deallocate(client->impl, allocator.state);
     client->impl = NULL;
   }
