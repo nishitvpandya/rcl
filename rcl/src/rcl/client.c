@@ -282,8 +282,7 @@ rcl_send_request(const rcl_client_t * client, const void * ros_request, int64_t 
         service_msgs__msg__ServiceEventInfo__REQUEST_SENT,
         ros_request,
         *sequence_number,
-        client->impl->rmw_handle->writer_guid,
-        &client->impl->options.allocator);
+        client->impl->rmw_handle->writer_guid);
     if (RCL_RET_OK != ret) {
       RCL_SET_ERROR_MSG(rcl_get_error_string().str);
       return RCL_RET_ERROR;
@@ -327,8 +326,7 @@ rcl_take_response_with_info(
       service_msgs__msg__ServiceEventInfo__RESPONSE_RECEIVED,
       ros_response,
       request_header->request_id.sequence_number,
-      client->impl->rmw_handle->writer_guid,
-      &client->impl->options.allocator);
+      client->impl->rmw_handle->writer_guid);
     if (RCL_RET_OK != ret) {
       RCL_SET_ERROR_MSG(rcl_get_error_string().str);
       return RCL_RET_ERROR;
@@ -405,11 +403,9 @@ rcl_service_introspection_configure_client_service_events(
   if (enable) {
     return rcl_service_introspection_enable(
       client->impl->service_event_publisher, node,
-      rcl_client_get_options(client)->event_publisher_options,
-      &rcl_client_get_options(client)->allocator);
+      rcl_client_get_options(client)->event_publisher_options);
   }
-  return rcl_service_introspection_disable(
-      client->impl->service_event_publisher, node, &rcl_client_get_options(client)->allocator);
+  return rcl_service_introspection_disable(client->impl->service_event_publisher, node);
 }
 
 void

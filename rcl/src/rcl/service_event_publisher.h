@@ -91,7 +91,6 @@ RCL_WARN_UNUSED
 rcl_ret_t
 rcl_service_event_publisher_fini(
   rcl_service_event_publisher_t * service_event_publisher,
-  const rcl_allocator_t * allocator,
   rcl_node_t * node);
 
 RCL_LOCAL
@@ -102,8 +101,7 @@ rcl_send_service_event_message(
   uint8_t event_type,
   const void * ros_response_request,
   int64_t sequence_number,
-  const uint8_t uuid[16], // uuid is uint8_t but the guid is int8_t
-  const rcl_allocator_t * allocator);
+  const uint8_t uuid[16]); // uuid is uint8_t but the guid is int8_t
 
 /*  Enables service introspection by reconstructing the introspection clock and publisher
  *  
@@ -115,8 +113,7 @@ rcl_ret_t
 rcl_service_introspection_enable(
   rcl_service_event_publisher_t * service_event_publisher,
   const rcl_node_t * node,
-  rcl_publisher_options_t publisher_options,
-  const rcl_allocator_t * allocator);
+  rcl_publisher_options_t publisher_options);
 
 /*  Disables service introspection by fini-ing and freeing the introspection clock and publisher
  *  
@@ -127,8 +124,7 @@ RCL_WARN_UNUSED
 rcl_ret_t
 rcl_service_introspection_disable(
   rcl_service_event_publisher_t * service_event_publisher,
-  rcl_node_t * node,
-  const rcl_allocator_t * allocator);
+  rcl_node_t * node);
 
 #ifdef __cplusplus
 }
