@@ -121,8 +121,7 @@ RCL_WARN_UNUSED
 rcl_ret_t
 rcl_service_introspection_enable(
   rcl_service_event_publisher_t * service_event_publisher,
-  const rcl_node_t * node,
-  rcl_publisher_options_t publisher_options);
+  const rcl_node_t * node);
 
 /*  Disables service introspection by fini-ing and freeing the introspection clock and publisher
  *  

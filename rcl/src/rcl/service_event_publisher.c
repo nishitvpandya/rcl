@@ -344,8 +344,7 @@ rcl_ret_t rcl_send_service_event_message(
 
 rcl_ret_t rcl_service_introspection_enable(
   rcl_service_event_publisher_t * service_event_publisher,
-  const rcl_node_t * node,
-  rcl_publisher_options_t publisher_options)
+  const rcl_node_t * node)
 {
   RCUTILS_CAN_RETURN_WITH_ERROR_OF(RCL_RET_INVALID_ARGUMENT);
   RCUTILS_CAN_RETURN_WITH_ERROR_OF(RCL_RET_ERROR);
@@ -380,7 +379,8 @@ rcl_ret_t rcl_service_introspection_enable(
   rcl_ret_t ret = rcl_publisher_init(
     service_event_publisher->impl->publisher, node, 
     service_event_publisher->impl->service_type_support->event_typesupport,
-    service_event_publisher->impl->service_event_topic_name, &publisher_options);
+    service_event_publisher->impl->service_event_topic_name,
+    &service_event_publisher->impl->options.publisher_options);
   if (RCL_RET_OK != ret) {
     RCL_SET_ERROR_MSG(rcl_get_error_string().str);
     return ret;

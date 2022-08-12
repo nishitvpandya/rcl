@@ -414,9 +414,7 @@ rcl_service_introspection_configure_client_service_events(
     bool enable)
 {
   if (enable) {
-    return rcl_service_introspection_enable(
-      client->impl->service_event_publisher, node,
-      rcl_client_get_options(client)->event_publisher_options);
+    return rcl_service_introspection_enable(client->impl->service_event_publisher, node);
   }
   return rcl_service_introspection_disable(client->impl->service_event_publisher, node);
 }
