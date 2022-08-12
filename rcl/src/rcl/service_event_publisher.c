@@ -113,6 +113,7 @@ rcl_service_event_publisher_get_default_options()
 {
   static rcl_service_event_publisher_options_t default_options;
   // Must set the options after because they are not a compile time constant.
+  default_options._enabled = true;
   default_options._content_enabled = true;
   default_options.publisher_options = rcl_publisher_get_default_options();
   default_options.clock = NULL;
@@ -262,22 +263,25 @@ rcl_ret_t rcl_send_service_event_message(
   RCUTILS_CAN_RETURN_WITH_ERROR_OF(RCL_RET_PUBLISHER_INVALID);
   RCUTILS_CAN_RETURN_WITH_ERROR_OF(RCL_RET_ERROR);
   RCUTILS_CAN_RETURN_WITH_ERROR_OF(RCL_RET_BAD_ALLOC);
+  // early exit if service introspection disabled during runtime
+  if (!service_event_publisher->impl->options._enabled){
+    return RCL_RET_OK;
+  }
   if (!rcl_service_event_publisher_is_valid(service_event_publisher)){
     return RCL_RET_PUBLISHER_INVALID;
-  }
-  if (NULL == service_event_publisher->impl->publisher){
-    return RCL_RET_OK;
   }
 
   RCL_CHECK_ARGUMENT_FOR_NULL(ros_response_request, RCL_RET_INVALID_ARGUMENT);
   RCL_CHECK_FOR_NULL_WITH_MSG(uuid, "uuid is NULL", return RCL_RET_INVALID_ARGUMENT);
-
-  // early exit if service introspection disabled during runtime
   rcl_allocator_t allocator = service_event_publisher->impl->options.publisher_options.allocator;
   RCL_CHECK_ALLOCATOR_WITH_MSG(&allocator, "invalid allocator", return RCL_RET_INVALID_ARGUMENT);
 
   rcl_ret_t ret;
 
+  if (!rcl_clock_valid(service_event_publisher->impl->options.clock)){
+    RCL_SET_ERROR_MSG("clock is invalid");
+    return RCL_RET_ERROR;
+  }
   rcl_time_point_value_t now;
   ret = rcl_clock_get_now(service_event_publisher->impl->options.clock, &now);
   if (RMW_RET_OK != ret) {
@@ -297,34 +301,33 @@ rcl_ret_t rcl_send_service_event_message(
   switch (event_type) {
     case service_msgs__msg__ServiceEventInfo__REQUEST_RECEIVED:
     case service_msgs__msg__ServiceEventInfo__REQUEST_SENT:
-      service_introspection_message = service_event_publisher->impl->service_type_support->introspection_message_create_handle(
-          &info, &allocator, ros_response_request, NULL, service_event_publisher->impl->options._content_enabled);
-          break;
+      service_introspection_message =
+        service_event_publisher->impl->service_type_support->introspection_message_create_handle(
+            &info, &allocator, ros_response_request, NULL,
+            service_event_publisher->impl->options._content_enabled);
+      break;
     case service_msgs__msg__ServiceEventInfo__RESPONSE_RECEIVED:
     case service_msgs__msg__ServiceEventInfo__RESPONSE_SENT:
-      service_introspection_message = service_event_publisher->impl->service_type_support->introspection_message_create_handle(
-          &info, &allocator, NULL, ros_response_request, service_event_publisher->impl->options._content_enabled);
-          break;
+      service_introspection_message =
+        service_event_publisher->impl->service_type_support->introspection_message_create_handle(
+            &info, &allocator, NULL, ros_response_request,
+            service_event_publisher->impl->options._content_enabled);
+      break;
   }
-
-  if (NULL == service_introspection_message) {
-    RCL_SET_ERROR_MSG("Failed to create service introspection message");
-    return RCL_RET_ERROR;
-  }
-
-
+  RCL_CHECK_FOR_NULL_WITH_MSG(
+      service_introspection_message, "service_introspection_message is NULL", return RCL_RET_ERROR);
 
   // and publish it out!
   // TODO(ihasdapie): Publisher context can become invalidated on shutdown
   ret = rcl_publish(service_event_publisher->impl->publisher, service_introspection_message, NULL);
   if (RMW_RET_OK != ret) {
     RCL_SET_ERROR_MSG(rmw_get_error_string().str);
-    return RCL_RET_ERROR;
+    return ret;
   }
 
   // clean up
-  service_event_publisher->impl->service_type_support->introspection_message_destroy_handle(service_introspection_message, &allocator);
-
+  service_event_publisher->impl->service_type_support->introspection_message_destroy_handle(
+      service_introspection_message, &allocator);
   return RCL_RET_OK;
 }
 
@@ -352,6 +355,8 @@ rcl_ret_t rcl_service_introspection_enable(
     RCL_SET_ERROR_MSG(rcl_get_error_string().str);
     return ret;
   }
+
+  service_event_publisher->impl->options._enabled = true;
   return RCL_RET_OK;
 }
 
@@ -376,6 +381,8 @@ rcl_ret_t rcl_service_introspection_disable(
     RCL_SET_ERROR_MSG(rmw_get_error_string().str);
     return ret;
   }
+
+  service_event_publisher->impl->options._enabled = false;
   return RCL_RET_OK;
 }
 
