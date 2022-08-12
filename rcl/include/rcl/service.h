@@ -545,7 +545,7 @@ rcl_service_set_on_new_request_callback(
   rcl_event_callback_t callback,
   const void * user_data);
 
-/// Enables service introspection features for the service
+/// Configure service introspection features for the service
 /*
  * This function is a thin wrapper around rcl_service_introspection_enable
  *
@@ -558,42 +558,21 @@ rcl_service_set_on_new_request_callback(
  * Lock-Free          |
  * \param[in] server The server on which to enable service introspection
  * \param[in] node The node for which the service event publisher is to be associated to
+ * \param[in] enable Whether to enable or disable service introspection
  */
 RCL_PUBLIC
 RCL_WARN_UNUSED
 rcl_ret_t
-rcl_service_introspection_enable_server_service_events(
-    rcl_service_t * service,
-    rcl_node_t * node);
-
-/// Disables service introspection features for the service
-/*
- * This function is a thin wrapper around rcl_service_introspection_disable
- *
- * <hr>
- * Attribute          | Adherence
- * ------------------ | -------------
- * Allocates Memory   | Yes
- * Thread-Safe        |  TODO(ihasdapie): Fill this out
- * Uses Atomics       | 
- * Lock-Free          |
- * \param[in] server The server on which to disable service introspection
- * \param[in] node The node for which the service event publisher is associated with
- */
-RCL_PUBLIC
-RCL_WARN_UNUSED
-rcl_ret_t
-rcl_service_introspection_disable_server_service_events(
-    rcl_service_t * service,
-    rcl_node_t * node);
+rcl_service_introspection_configure_server_service_events(
+  rcl_service_t * service,
+  rcl_node_t * node,
+  bool enable);
 
 RCL_PUBLIC
 void
-rcl_service_introspection_enable_server_service_event_message_payload(rcl_service_t * service);
-
-RCL_PUBLIC
-void
-rcl_service_introspection_disable_server_service_event_message_payload(rcl_service_t * service);
+rcl_service_introspection_configure_server_service_event_message_payload(
+  rcl_service_t * service,
+  bool enable);
 
 #ifdef __cplusplus
 }

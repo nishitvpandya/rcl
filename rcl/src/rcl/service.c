@@ -451,34 +451,27 @@ rcl_service_set_on_new_request_callback(
 }
 
 rcl_ret_t
-rcl_service_introspection_enable_server_service_events(
-    rcl_service_t * service,
-    rcl_node_t * node)
+rcl_service_introspection_configure_server_service_events(
+  rcl_service_t * service,
+  rcl_node_t * node,
+  bool enable)
 {
-  return rcl_service_introspection_enable(
-      service->impl->service_event_publisher, node,
-      rcl_service_get_options(service)->event_publisher_options,
-      &rcl_service_get_options(service)->allocator);
-}
-
-rcl_ret_t
-rcl_service_introspection_disable_server_service_events(
-    rcl_service_t * service,
-    rcl_node_t * node)
-{
+  if (enable) {
+    return rcl_service_introspection_enable(
+        service->impl->service_event_publisher, node,
+        rcl_service_get_options(service)->event_publisher_options,
+        &rcl_service_get_options(service)->allocator);
+  }
   return rcl_service_introspection_disable(
       service->impl->service_event_publisher, node, &service->impl->options.allocator);
 }
 
 void
-rcl_service_introspection_enable_server_service_event_message_payload(rcl_service_t * service)
+rcl_service_introspection_configure_server_service_event_message_payload(
+  rcl_service_t * service,
+  bool enable)
 {
-  service->impl->service_event_publisher->impl->_content_enabled = true;
-}
-
-void
-rcl_service_introspection_disable_server_service_event_message_payload(rcl_service_t * service){
-  service->impl->service_event_publisher->impl->_content_enabled = false;
+  service->impl->service_event_publisher->impl->options._content_enabled = enable;
 }
 
 #ifdef __cplusplus
