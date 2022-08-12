@@ -113,11 +113,26 @@ rcl_service_event_publisher_get_default_options()
 {
   static rcl_service_event_publisher_options_t default_options;
   // Must set the options after because they are not a compile time constant.
-  default_options._enabled = true;
   default_options._content_enabled = true;
   default_options.publisher_options = rcl_publisher_get_default_options();
   default_options.clock = NULL;
   return default_options;
+}
+
+bool
+rcl_service_event_publisher_is_valid(const rcl_service_event_publisher_t * service_event_publisher)
+{
+  RCL_CHECK_FOR_NULL_WITH_MSG(
+    service_event_publisher, "service_event_publisher is invalid", return false);
+  RCL_CHECK_FOR_NULL_WITH_MSG(
+    service_event_publisher->impl, "service_event_publisher's implementation is invalid", return false);
+  RCL_CHECK_FOR_NULL_WITH_MSG(
+    service_event_publisher->impl->service_type_support,
+    "service_event_publisher's service type support is invalid", return false);
+  if (!rcl_publisher_is_valid(service_event_publisher->impl->publisher)) {
+    return false;
+  }
+  return true;
 }
 
 rcl_ret_t rcl_service_event_publisher_init(
@@ -199,6 +214,8 @@ rcl_ret_t rcl_service_event_publisher_init(
     RCL_SET_ERROR_MSG(rcl_get_error_string().str);
     return ret;
   }
+  RCUTILS_LOG_DEBUG_NAMED(
+    ROS_PACKAGE_NAME, "Service introspection for service'%s' initialized", service_name);
   return RCL_RET_OK;
 }
 
@@ -206,33 +223,59 @@ rcl_ret_t rcl_service_event_publisher_fini(
   rcl_service_event_publisher_t * service_event_publisher,
   rcl_node_t * node)
 { 
-  // TOOD(ihasdapie): check for input nulls
+  RCUTILS_CAN_RETURN_WITH_ERROR_OF(RCL_RET_INVALID_ARGUMENT);
+  RCUTILS_CAN_RETURN_WITH_ERROR_OF(RCL_RET_ALREADY_SHUTDOWN);
+  RCUTILS_CAN_RETURN_WITH_ERROR_OF(RCL_RET_NODE_INVALID);
+  RCUTILS_CAN_RETURN_WITH_ERROR_OF(RCL_RET_PUBLISHER_INVALID);
+  RCUTILS_CAN_RETURN_WITH_ERROR_OF(RCL_RET_ERROR);
+  RCUTILS_CAN_RETURN_WITH_ERROR_OF(RCL_RET_BAD_ALLOC);
+
+  RCL_CHECK_ARGUMENT_FOR_NULL(service_event_publisher, RCL_RET_INVALID_ARGUMENT);
+  RCL_CHECK_ARGUMENT_FOR_NULL(node, RCL_RET_NODE_INVALID);
+  RCL_CHECK_FOR_NULL_WITH_MSG(
+    service_event_publisher->impl, "service_event_publisher not initialized",
+    return RCL_RET_ERROR);
+  RCL_CHECK_FOR_NULL_WITH_MSG(
+    service_event_publisher->impl->publisher, "service_event_publisher's publisher not initialized",
+    return RCL_RET_ERROR);
+
   rcl_allocator_t allocator = service_event_publisher->impl->options.publisher_options.allocator;
-  if (NULL != service_event_publisher->impl->publisher) {
-    rcl_ret_t ret = rcl_publisher_fini(service_event_publisher->impl->publisher, node);
-    allocator.deallocate(service_event_publisher->impl->publisher, allocator.state);
-    service_event_publisher->impl->publisher = NULL;
-    if (RCL_RET_OK != ret) {
-      RCL_SET_ERROR_MSG(rcl_get_error_string().str);
-      return ret;
-    }
+  rcl_ret_t ret = rcl_publisher_fini(service_event_publisher->impl->publisher, node);
+  allocator.deallocate(service_event_publisher->impl->publisher, allocator.state);
+  service_event_publisher->impl->publisher = NULL;
+  if (RCL_RET_OK != ret) {
+    RCL_SET_ERROR_MSG(rcl_get_error_string().str);
+    return ret;
   }
-  allocator.deallocate(service_event_publisher->impl, allocator.state);
-  service_event_publisher->impl = NULL;
 
   return RCL_RET_OK;
 }
 
 rcl_ret_t rcl_send_service_event_message(
-  const rcl_service_event_publisher_t * service_event_publisher, const uint8_t event_type,
-  const void * ros_response_request, const int64_t sequence_number, const uint8_t uuid[16])
+  const rcl_service_event_publisher_t * service_event_publisher,
+  const uint8_t event_type,
+  const void * ros_response_request,
+  const int64_t sequence_number,
+  const uint8_t uuid[16])
 {
-  // early exit if service introspection disabled during runtime
+  RCUTILS_CAN_RETURN_WITH_ERROR_OF(RCL_RET_INVALID_ARGUMENT);
+  RCUTILS_CAN_RETURN_WITH_ERROR_OF(RCL_RET_PUBLISHER_INVALID);
+  RCUTILS_CAN_RETURN_WITH_ERROR_OF(RCL_RET_ERROR);
+  RCUTILS_CAN_RETURN_WITH_ERROR_OF(RCL_RET_BAD_ALLOC);
+  if (!rcl_service_event_publisher_is_valid(service_event_publisher)){
+    return RCL_RET_PUBLISHER_INVALID;
+  }
   if (NULL == service_event_publisher->impl->publisher){
     return RCL_RET_OK;
   }
 
+  RCL_CHECK_ARGUMENT_FOR_NULL(ros_response_request, RCL_RET_INVALID_ARGUMENT);
+  RCL_CHECK_FOR_NULL_WITH_MSG(uuid, "uuid is NULL", return RCL_RET_INVALID_ARGUMENT);
+
+  // early exit if service introspection disabled during runtime
   rcl_allocator_t allocator = service_event_publisher->impl->options.publisher_options.allocator;
+  RCL_CHECK_ALLOCATOR_WITH_MSG(&allocator, "invalid allocator", return RCL_RET_INVALID_ARGUMENT);
+
   rcl_ret_t ret;
 
   rcl_time_point_value_t now;

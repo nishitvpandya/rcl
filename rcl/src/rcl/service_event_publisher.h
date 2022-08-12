@@ -94,6 +94,10 @@ rcl_service_event_publisher_fini(
   rcl_node_t * node);
 
 RCL_LOCAL
+bool
+rcl_service_event_publisher_is_valid(const rcl_service_event_publisher_t * service_event_publisher);
+
+RCL_LOCAL
 RCL_WARN_UNUSED
 rcl_ret_t
 rcl_send_service_event_message(
