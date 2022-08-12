@@ -15,6 +15,8 @@
 #ifndef RCL__SERVICE_EVENT_PUBLISHER_H_
 #define RCL__SERVICE_EVENT_PUBLISHER_H_
 
+#include <rmw/types.h>
+#include "rcl/macros.h"
 #ifdef __cplusplus
 extern "C"
 {
@@ -27,22 +29,31 @@ extern "C"
 #include "rmw/rmw.h"
 #include "stdbool.h"
 
-typedef struct rcl_service_event_impl_s {
-  /// Handle to clock for timestamping service events
-  rcl_clock_t * clock;
-  /// Handle to publisher for publishing service events
-  rcl_publisher_t * publisher;
-  /// Handle to service typesupport
-  const rosidl_service_type_support_t * service_type_support;
-  /// Name of service introspection topic: <service_name>/RCL_SERVICE_INTROSPECTION_TOPIC_POSTFIX
-  char service_event_topic_name[255];
+
+typedef struct rcl_service_event_publisher_options_s {
   // Enable/disable service introspection during runtime
   bool _enabled;
   // Enable/disable including request/response payload in service event message during runtime
   bool _content_enabled;
+  /// Handle to clock for timestamping service events
+  rcl_clock_t * clock;
+  /// publisher options for service event publisher
+  rcl_publisher_options_t publisher_options;
+} rcl_service_event_publisher_options_t;
+
+typedef struct rcl_service_event_publisher_impl_s {
+  /// Handle to publisher for publishing service events
+  rcl_publisher_t * publisher;
+  /// Name of service introspection topic: <service_name>/RCL_SERVICE_INTROSPECTION_TOPIC_POSTFIX
+  char service_event_topic_name[255];
+  /// rcl_service_event_publisher options
+  rcl_service_event_publisher_options_t options;
+  /// Handle to service typesupport
+  const rosidl_service_type_support_t * service_type_support;
 } rcl_service_event_publisher_impl_t;
 
 typedef struct rcl_service_event_publisher_s {
+  /// Pointer to implementation struct
   rcl_service_event_publisher_impl_t * impl;
 } rcl_service_event_publisher_t;
 
@@ -57,6 +68,11 @@ rcl_service_typesupport_to_message_typesupport(
 
 RCL_LOCAL
 RCL_WARN_UNUSED
+rcl_service_event_publisher_options_t
+rcl_service_event_publisher_get_default_options();
+
+RCL_LOCAL
+RCL_WARN_UNUSED
 rcl_service_event_publisher_t
 rcl_get_zero_initialized_service_event_publisher();
 
@@ -65,19 +81,17 @@ RCL_WARN_UNUSED
 rcl_ret_t
 rcl_service_event_publisher_init(
   rcl_service_event_publisher_t * service_event_publisher,
-  const rosidl_service_type_support_t * service_type_support,
-  const char * service_name,
   const rcl_node_t * node,
-  rcl_clock_t * clock,
-  rcl_publisher_options_t publisher_options,
-  rcl_allocator_t * allocator);
+  const rcl_service_event_publisher_options_t * options,
+  const char * service_name,
+  const rosidl_service_type_support_t * service_type_support);
 
 RCL_LOCAL
 RCL_WARN_UNUSED
 rcl_ret_t
 rcl_service_event_publisher_fini(
   rcl_service_event_publisher_t * service_event_publisher,
-  rcl_allocator_t * allocator,
+  const rcl_allocator_t * allocator,
   rcl_node_t * node);
 
 RCL_LOCAL
@@ -102,7 +116,7 @@ rcl_service_introspection_enable(
   rcl_service_event_publisher_t * service_event_publisher,
   const rcl_node_t * node,
   rcl_publisher_options_t publisher_options,
-  rcl_allocator_t * allocator);
+  const rcl_allocator_t * allocator);
 
 /*  Disables service introspection by fini-ing and freeing the introspection clock and publisher
  *  

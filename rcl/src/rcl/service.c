@@ -139,12 +139,18 @@ rcl_service_init(
 
   service->impl->service_event_publisher = NULL;
   if (options->enable_service_introspection) {
+    rcl_service_event_publisher_options_t options =
+      rcl_service_event_publisher_get_default_options();
     service->impl->service_event_publisher = allocator->zero_allocate(
         1, sizeof(rcl_service_event_publisher_t), allocator->state);
+    RCL_CHECK_FOR_NULL_WITH_MSG(
+        service->impl->service_event_publisher,
+        "allocating memory failed", ret = RCL_RET_BAD_ALLOC; goto fail);
+
     *service->impl->service_event_publisher = rcl_get_zero_initialized_service_event_publisher();
     ret = rcl_service_event_publisher_init(
-        service->impl->service_event_publisher, type_support, remapped_service_name, node,
-        options->clock, options->event_publisher_options, allocator);
+        service->impl->service_event_publisher, node, &options, remapped_service_name,
+        type_support);
     if (RCL_RET_OK != ret) {
       RCL_SET_ERROR_MSG(rcl_get_error_string().str);
       goto fail;
