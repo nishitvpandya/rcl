@@ -451,3 +451,21 @@ rcl_add_custom_gtest(test_subscription_content_filter_options
   LIBRARIES ${PROJECT_NAME}
   AMENT_DEPENDENCIES "osrf_testing_tools_cpp" "test_msgs"
 )
+
+
+rcl_add_custom_gtest(test_service_event_publisher
+  SRCS rcl/test_service_event_publisher.cpp
+  APPEND_LIBRARY_DIRS ${extra_lib_dirs}
+  LIBRARIES ${PROJECT_NAME}
+  AMENT_DEPENDENCIES "osrf_testing_tools_cpp" "test_msgs"
+)
+
+
+
+
+
+
+
+
+
+

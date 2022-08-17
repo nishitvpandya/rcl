@@ -66,17 +66,17 @@ rcl_service_typesupport_to_message_typesupport(
   rosidl_message_type_support_t ** response_typesupport,
   const rcl_allocator_t * allocator);
 
-RCL_LOCAL
+RCL_PUBLIC
 RCL_WARN_UNUSED
 rcl_service_event_publisher_options_t
 rcl_service_event_publisher_get_default_options();
 
-RCL_LOCAL
+RCL_PUBLIC
 RCL_WARN_UNUSED
 rcl_service_event_publisher_t
 rcl_get_zero_initialized_service_event_publisher();
 
-RCL_LOCAL
+RCL_PUBLIC
 RCL_WARN_UNUSED
 rcl_ret_t
 rcl_service_event_publisher_init(
@@ -86,23 +86,23 @@ rcl_service_event_publisher_init(
   const char * service_name,
   const rosidl_service_type_support_t * service_type_support);
 
-RCL_LOCAL
+RCL_PUBLIC
 RCL_WARN_UNUSED
 rcl_ret_t
 rcl_service_event_publisher_fini(
   rcl_service_event_publisher_t * service_event_publisher,
   rcl_node_t * node);
 
-RCL_LOCAL
+RCL_PUBLIC
 bool
 rcl_service_event_publisher_is_valid_without_publisher(
   const rcl_service_event_publisher_t * service_event_publisher);
 
-RCL_LOCAL
+RCL_PUBLIC
 bool
 rcl_service_event_publisher_is_valid(const rcl_service_event_publisher_t * service_event_publisher);
 
-RCL_LOCAL
+RCL_PUBLIC
 RCL_WARN_UNUSED
 rcl_ret_t
 rcl_send_service_event_message(
@@ -116,7 +116,7 @@ rcl_send_service_event_message(
  *  
  *  Does nothing and returns RCL_RET_OK if already enabled
  */
-RCL_LOCAL
+RCL_PUBLIC
 RCL_WARN_UNUSED
 rcl_ret_t
 rcl_service_introspection_enable(
@@ -127,7 +127,7 @@ rcl_service_introspection_enable(
  *  
  *  Does nothing and returns RCL_RET_OK if already disabled
  */
-RCL_LOCAL
+RCL_PUBLIC
 RCL_WARN_UNUSED
 rcl_ret_t
 rcl_service_introspection_disable(
