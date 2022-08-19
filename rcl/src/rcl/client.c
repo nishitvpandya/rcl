@@ -25,10 +25,10 @@ extern "C"
 #include "rcl/error_handling.h"
 #include "rcl/node.h"
 #include "rcl/publisher.h"
-#include "rcutils/logging_macros.h"
-#include "rcutils/macros.h"
 #include "rmw/error_handling.h"
 #include "rmw/rmw.h"
+#include "rcutils/logging_macros.h"
+#include "rcutils/macros.h"
 #include "tracetools/tracetools.h"
 #include "service_msgs/msg/service_event_info.h"
 
@@ -121,6 +121,7 @@ rcl_client_init(
     rcl_service_event_publisher_options_t service_event_options =
       rcl_service_event_publisher_get_default_options();
     service_event_options.publisher_options = options->event_publisher_options;
+    service_event_options.clock = options->clock;
 
     *client->impl->service_event_publisher = rcl_get_zero_initialized_service_event_publisher();
     ret = rcl_service_event_publisher_init(
@@ -290,12 +291,18 @@ rcl_send_request(const rcl_client_t * client, const void * ros_request, int64_t 
   rcutils_atomic_exchange_int64_t(&client->impl->sequence_number, *sequence_number);
   
   if (rcl_client_get_options(client)->enable_service_introspection) {
+    rmw_gid_t gid;
+    rmw_ret_t rmw_ret = rmw_get_gid_for_client(client->impl->rmw_handle, &gid);
+    if (rmw_ret != RMW_RET_OK) {
+      RCL_SET_ERROR_MSG(rmw_get_error_string().str);
+      return RCL_RET_ERROR;
+    }
     rcl_ret_t ret = rcl_send_service_event_message(
         client->impl->service_event_publisher,
         service_msgs__msg__ServiceEventInfo__REQUEST_SENT,
         ros_request,
         *sequence_number,
-        client->impl->rmw_handle->writer_guid);
+        gid.data);
     if (RCL_RET_OK != ret) {
       RCL_SET_ERROR_MSG(rcl_get_error_string().str);
       return RCL_RET_ERROR;
@@ -334,12 +341,19 @@ rcl_take_response_with_info(
   }
 
   if (rcl_client_get_options(client)->enable_service_introspection) {
+    rmw_gid_t gid;
+    // TODO(ihasdapie): rcl_get_gid_for_client()?
+    rmw_ret_t rmw_ret = rmw_get_gid_for_client(client->impl->rmw_handle, &gid);
+    if (rmw_ret != RMW_RET_OK) {
+      RCL_SET_ERROR_MSG(rmw_get_error_string().str);
+      return RCL_RET_ERROR;
+    }
     rcl_ret_t ret = rcl_send_service_event_message(
       client->impl->service_event_publisher,
       service_msgs__msg__ServiceEventInfo__RESPONSE_RECEIVED,
       ros_response,
       request_header->request_id.sequence_number,
-      client->impl->rmw_handle->writer_guid);
+      gid.data);
     if (RCL_RET_OK != ret) {
       RCL_SET_ERROR_MSG(rcl_get_error_string().str);
       return RCL_RET_ERROR;

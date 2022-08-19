@@ -113,8 +113,8 @@ rcl_service_init(
     ROS_PACKAGE_NAME, "Expanded and remapped service name '%s'", remapped_service_name);
 
   // Allocate space for the implementation struct.
-  service->impl = (rcl_service_impl_t *)allocator->allocate(
-    sizeof(rcl_service_impl_t), allocator->state);
+  service->impl = (rcl_service_impl_t *)allocator->zero_allocate(
+      1, sizeof(rcl_service_impl_t), allocator->state);
   RCL_CHECK_FOR_NULL_WITH_MSG(
     service->impl, "allocating memory failed", ret = RCL_RET_BAD_ALLOC; goto cleanup);
 
@@ -137,7 +137,6 @@ rcl_service_init(
     goto fail;
   }
 
-  service->impl->service_event_publisher = NULL;
   if (options->enable_service_introspection) {
     service->impl->service_event_publisher = allocator->zero_allocate(
         1, sizeof(rcl_service_event_publisher_t), allocator->state);
@@ -148,6 +147,7 @@ rcl_service_init(
     rcl_service_event_publisher_options_t service_event_options =
       rcl_service_event_publisher_get_default_options();
     service_event_options.publisher_options = options->event_publisher_options;
+    service_event_options.clock = options->clock;
 
     *service->impl->service_event_publisher = rcl_get_zero_initialized_service_event_publisher();
     ret = rcl_service_event_publisher_init(

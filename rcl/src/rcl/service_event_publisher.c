@@ -174,6 +174,7 @@ rcl_ret_t rcl_service_event_publisher_init(
   RCL_CHECK_ARGUMENT_FOR_NULL(node, RCL_RET_INVALID_ARGUMENT);
 
   if (service_event_publisher->impl) {
+    rcutils_reset_error();
     RCL_SET_ERROR_MSG("service event publisher already initialized, or memory was unintialized");
     return RCL_RET_ALREADY_INIT;
   }
@@ -183,6 +184,7 @@ rcl_ret_t rcl_service_event_publisher_init(
   }
 
   if (!rcl_clock_valid(options->clock)) {
+    rcutils_reset_error();
     RCL_SET_ERROR_MSG("clock is invalid");
     return RCL_RET_ERROR;
   }
@@ -197,10 +199,12 @@ rcl_ret_t rcl_service_event_publisher_init(
 
   // Typesupports have static lifetimes
   service_event_publisher->impl->service_type_support = service_type_support;
+  service_event_publisher->impl->options = *options;
 
   // Make a publisher
   if (strlen(service_name) > 255 - strlen(RCL_SERVICE_INTROSPECTION_TOPIC_POSTFIX)) {
     // topics have a maximum length of 255 characters
+    rcutils_reset_error();
     RCL_SET_ERROR_MSG("Service name is too long");
     return RCL_RET_ERROR;
   }
@@ -210,11 +214,10 @@ rcl_ret_t rcl_service_event_publisher_init(
   service_event_publisher->impl->publisher = allocator.allocate(
       sizeof(rcl_publisher_t), allocator.state);
   RCL_CHECK_FOR_NULL_WITH_MSG(
-    service_event_publisher->impl->publisher, "allocating memory for rcl_service_event_publisher failed",
-    return RCL_RET_BAD_ALLOC);
-
-  *service_event_publisher->impl->publisher = rcl_get_zero_initialized_publisher();
-  rcl_ret_t ret = rcl_publisher_init(service_event_publisher->impl->publisher, node,
+      service_event_publisher->impl->publisher,
+      "allocating memory for service_event publisher failed", return RCL_RET_BAD_ALLOC);
+  (*service_event_publisher->impl->publisher) = rcl_get_zero_initialized_publisher();
+  rcl_ret_t ret = rcl_publisher_init(service_event_publisher->impl->publisher, node, // invalid read 1 alloc
       service_type_support->event_typesupport, service_event_publisher->impl->service_event_topic_name,
       &options->publisher_options);
 
@@ -223,6 +226,7 @@ rcl_ret_t rcl_service_event_publisher_init(
   }
 
   if (RCL_RET_OK != ret) {
+    rcutils_reset_error();
     RCL_SET_ERROR_MSG(rcl_get_error_string().str);
     return ret;
   }
@@ -256,6 +260,7 @@ rcl_ret_t rcl_service_event_publisher_fini(
   allocator.deallocate(service_event_publisher->impl->publisher, allocator.state);
   service_event_publisher->impl->publisher = NULL;
   if (RCL_RET_OK != ret) {
+    rcutils_reset_error();
     RCL_SET_ERROR_MSG(rcl_get_error_string().str);
     return ret;
   }
@@ -290,12 +295,14 @@ rcl_ret_t rcl_send_service_event_message(
   rcl_ret_t ret;
 
   if (!rcl_clock_valid(service_event_publisher->impl->options.clock)){
+    rcutils_reset_error();
     RCL_SET_ERROR_MSG("clock is invalid");
     return RCL_RET_ERROR;
   }
   rcl_time_point_value_t now;
   ret = rcl_clock_get_now(service_event_publisher->impl->options.clock, &now);
   if (RMW_RET_OK != ret) {
+    rcutils_reset_error();
     RCL_SET_ERROR_MSG(rmw_get_error_string().str);
     return RCL_RET_ERROR;
   }
@@ -332,6 +339,7 @@ rcl_ret_t rcl_send_service_event_message(
   // TODO(ihasdapie): Publisher context can become invalidated on shutdown
   ret = rcl_publish(service_event_publisher->impl->publisher, service_introspection_message, NULL);
   if (RMW_RET_OK != ret) {
+    rcutils_reset_error();
     RCL_SET_ERROR_MSG(rmw_get_error_string().str);
     return ret;
   }
@@ -382,6 +390,7 @@ rcl_ret_t rcl_service_introspection_enable(
     service_event_publisher->impl->service_event_topic_name,
     &service_event_publisher->impl->options.publisher_options);
   if (RCL_RET_OK != ret) {
+    rcutils_reset_error();
     RCL_SET_ERROR_MSG(rcl_get_error_string().str);
     return ret;
   }
@@ -418,6 +427,7 @@ rcl_ret_t rcl_service_introspection_disable(
   allocator.deallocate(service_event_publisher->impl->publisher, allocator.state);
   service_event_publisher->impl->publisher = NULL;
   if (RCL_RET_OK != ret) {
+    rcutils_reset_error();
     RCL_SET_ERROR_MSG(rmw_get_error_string().str);
     return ret;
   }
