@@ -374,7 +374,6 @@ rcl_service_get_service_name(const rcl_service_t * service);
 
 /// Get the service type name for the service
 /**
- 
  * TODO(ihasdapie): document this function
  */
 RCL_PUBLIC
@@ -553,9 +552,9 @@ rcl_service_set_on_new_request_callback(
  * Attribute          | Adherence
  * ------------------ | -------------
  * Allocates Memory   | Yes
- * Thread-Safe        |  TODO(ihasdapie): Fill this out
- * Uses Atomics       | 
- * Lock-Free          |
+ * Thread-Safe        | No
+ * Uses Atomics       | Maybe [1]
+ * Lock-Free          | Maybe [1]
  * \param[in] server The server on which to enable service introspection
  * \param[in] node The node for which the service event publisher is to be associated to
  * \param[in] enable Whether to enable or disable service introspection

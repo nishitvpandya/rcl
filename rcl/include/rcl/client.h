@@ -512,9 +512,10 @@ rcl_client_set_on_new_response_callback(
  * Attribute          | Adherence
  * ------------------ | -------------
  * Allocates Memory   | Yes
- * Thread-Safe        |  TODO(ihasdapie): Fill this out
- * Uses Atomics       | 
- * Lock-Free          |
+ * Thread-Safe        | No
+ * Uses Atomics       | Maybe [1]
+ * Lock-Free          | Maybe [1]
+ * <i>[1] rmw implementation defined</i>
  * \param[in] client The client on which to enable service introspection
  * \param[in] node The node for which the service event publisher is to be associated to
  * \param[in] enable Whether to enable or disable service introspection for the client.
