@@ -32,11 +32,9 @@ extern "C"
 #include "tracetools/tracetools.h"
 #include "service_msgs/msg/service_event_info.h"
 
-
-#include "service_event_publisher.h"
-
 #include "./common.h"
 #include "./client_impl.h"
+#include "./service_event_publisher.h"
 
 rcl_client_t
 rcl_get_zero_initialized_client()
@@ -109,14 +107,14 @@ rcl_client_init(
     RCL_SET_ERROR_MSG(rmw_get_error_string().str);
     goto fail;
   }
-  
+
   client->impl->service_event_publisher = NULL;
   if (options->enable_service_introspection) {
     client->impl->service_event_publisher = allocator->zero_allocate(
-        1, sizeof(rcl_service_event_publisher_t), allocator->state);
+      1, sizeof(rcl_service_event_publisher_t), allocator->state);
     RCL_CHECK_FOR_NULL_WITH_MSG(
-        client->impl->service_event_publisher,
-        "allocating memory failed", ret = RCL_RET_BAD_ALLOC; goto fail);
+      client->impl->service_event_publisher,
+      "allocating memory failed", ret = RCL_RET_BAD_ALLOC; goto fail);
 
     rcl_service_event_publisher_options_t service_event_options =
       rcl_service_event_publisher_get_default_options();
@@ -125,14 +123,14 @@ rcl_client_init(
 
     *client->impl->service_event_publisher = rcl_get_zero_initialized_service_event_publisher();
     ret = rcl_service_event_publisher_init(
-        client->impl->service_event_publisher, node, &service_event_options,
-        remapped_service_name, type_support);
+      client->impl->service_event_publisher, node, &service_event_options,
+      remapped_service_name, type_support);
     if (RCL_RET_OK != ret) {
       RCL_SET_ERROR_MSG(rcl_get_error_string().str);
       goto fail;
     }
   }
-  
+
   // get actual qos, and store it
   rmw_ret_t rmw_ret = rmw_client_request_publisher_get_actual_qos(
     client->impl->rmw_handle,
@@ -289,7 +287,7 @@ rcl_send_request(const rcl_client_t * client, const void * ros_request, int64_t 
     return RCL_RET_ERROR;
   }
   rcutils_atomic_exchange_int64_t(&client->impl->sequence_number, *sequence_number);
-  
+
   if (rcl_client_get_options(client)->enable_service_introspection) {
     rmw_gid_t gid;
     rmw_ret_t rmw_ret = rmw_get_gid_for_client(client->impl->rmw_handle, &gid);
@@ -298,11 +296,11 @@ rcl_send_request(const rcl_client_t * client, const void * ros_request, int64_t 
       return RCL_RET_ERROR;
     }
     rcl_ret_t ret = rcl_send_service_event_message(
-        client->impl->service_event_publisher,
-        service_msgs__msg__ServiceEventInfo__REQUEST_SENT,
-        ros_request,
-        *sequence_number,
-        gid.data);
+      client->impl->service_event_publisher,
+      service_msgs__msg__ServiceEventInfo__REQUEST_SENT,
+      ros_request,
+      *sequence_number,
+      gid.data);
     if (RCL_RET_OK != ret) {
       RCL_SET_ERROR_MSG(rcl_get_error_string().str);
       return RCL_RET_ERROR;
@@ -342,7 +340,6 @@ rcl_take_response_with_info(
 
   if (rcl_client_get_options(client)->enable_service_introspection) {
     rmw_gid_t gid;
-    // TODO(ihasdapie): rcl_get_gid_for_client()?
     rmw_ret_t rmw_ret = rmw_get_gid_for_client(client->impl->rmw_handle, &gid);
     if (rmw_ret != RMW_RET_OK) {
       RCL_SET_ERROR_MSG(rmw_get_error_string().str);
@@ -423,9 +420,9 @@ rcl_client_set_on_new_response_callback(
 
 rcl_ret_t
 rcl_service_introspection_configure_client_service_events(
-    rcl_client_t * client,
-    rcl_node_t * node,
-    bool enable)
+  rcl_client_t * client,
+  rcl_node_t * node,
+  bool enable)
 {
   if (enable) {
     return rcl_service_introspection_enable(client->impl->service_event_publisher, node);

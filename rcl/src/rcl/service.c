@@ -36,8 +36,6 @@ extern "C"
 
 #include "tracetools/tracetools.h"
 
-#include "service_event_publisher.h"
-
 #include "rosidl_runtime_c/service_type_support_struct.h"
 #include "rosidl_runtime_c/message_type_support_struct.h"
 
@@ -46,7 +44,7 @@ extern "C"
 #include "rosidl_typesupport_c/type_support_map.h"
 
 
-
+#include "./service_event_publisher.h"
 #include "./service_impl.h"
 
 
@@ -114,7 +112,7 @@ rcl_service_init(
 
   // Allocate space for the implementation struct.
   service->impl = (rcl_service_impl_t *)allocator->zero_allocate(
-      1, sizeof(rcl_service_impl_t), allocator->state);
+    1, sizeof(rcl_service_impl_t), allocator->state);
   RCL_CHECK_FOR_NULL_WITH_MSG(
     service->impl, "allocating memory failed", ret = RCL_RET_BAD_ALLOC; goto cleanup);
 
@@ -139,10 +137,10 @@ rcl_service_init(
 
   if (options->enable_service_introspection) {
     service->impl->service_event_publisher = allocator->zero_allocate(
-        1, sizeof(rcl_service_event_publisher_t), allocator->state);
+      1, sizeof(rcl_service_event_publisher_t), allocator->state);
     RCL_CHECK_FOR_NULL_WITH_MSG(
-        service->impl->service_event_publisher,
-        "allocating memory failed", ret = RCL_RET_BAD_ALLOC; goto fail);
+      service->impl->service_event_publisher,
+      "allocating memory failed", ret = RCL_RET_BAD_ALLOC; goto fail);
 
     rcl_service_event_publisher_options_t service_event_options =
       rcl_service_event_publisher_get_default_options();
@@ -151,8 +149,8 @@ rcl_service_init(
 
     *service->impl->service_event_publisher = rcl_get_zero_initialized_service_event_publisher();
     ret = rcl_service_event_publisher_init(
-        service->impl->service_event_publisher, node, &service_event_options,
-        remapped_service_name, type_support);
+      service->impl->service_event_publisher, node, &service_event_options,
+      remapped_service_name, type_support);
     if (RCL_RET_OK != ret) {
       RCL_SET_ERROR_MSG(rcl_get_error_string().str);
       goto fail;
@@ -236,7 +234,7 @@ rcl_service_fini(rcl_service_t * service, rcl_node_t * node)
       RCL_SET_ERROR_MSG(rmw_get_error_string().str);
       result = RCL_RET_ERROR;
     }
-    
+
     if (service->impl->service_event_publisher) {
       ret = rcl_service_event_publisher_fini(service->impl->service_event_publisher, node);
       if (RCL_RET_OK != ret) {
@@ -291,7 +289,7 @@ rcl_service_get_service_type_name(const rosidl_service_type_support_t * service_
   type_support_map_t * map = (type_support_map_t *)service_type_support->data;
   // By inspection all of the symbol_name(s) end in the service type name
   // We can do this because underscores not allowed in service/msg/action names
-  char* service_type_name = strrchr(map->symbol_name[0], '_');
+  char * service_type_name = strrchr(map->symbol_name[0], '_');
   service_type_name++;
   return service_type_name;
 }
@@ -346,11 +344,11 @@ rcl_take_request_with_info(
   }
   if (rcl_service_get_options(service)->enable_service_introspection) {
     rcl_ret_t rclret = rcl_send_service_event_message(
-        service->impl->service_event_publisher,
-        service_msgs__msg__ServiceEventInfo__REQUEST_RECEIVED,
-        ros_request,
-        request_header->request_id.sequence_number,
-        request_header->request_id.writer_guid);
+      service->impl->service_event_publisher,
+      service_msgs__msg__ServiceEventInfo__REQUEST_RECEIVED,
+      ros_request,
+      request_header->request_id.sequence_number,
+      request_header->request_id.writer_guid);
     if (RCL_RET_OK != rclret) {
       RCL_SET_ERROR_MSG(rcl_get_error_string().str);
       return RCL_RET_ERROR;
@@ -386,9 +384,9 @@ rcl_send_response(
   RCL_CHECK_ARGUMENT_FOR_NULL(ros_response, RCL_RET_INVALID_ARGUMENT);
   const rcl_service_options_t * options = rcl_service_get_options(service);
   RCL_CHECK_FOR_NULL_WITH_MSG(options, "Failed to get service options", return RCL_RET_ERROR);
-  
+
   if (rmw_send_response(
-        service->impl->rmw_handle, request_header, ros_response) != RMW_RET_OK)
+      service->impl->rmw_handle, request_header, ros_response) != RMW_RET_OK)
   {
     RCL_SET_ERROR_MSG(rmw_get_error_string().str);
     return RCL_RET_ERROR;
@@ -397,11 +395,11 @@ rcl_send_response(
   // publish out the introspected content
   if (rcl_service_get_options(service)->enable_service_introspection) {
     rcl_ret_t ret = rcl_send_service_event_message(
-        service->impl->service_event_publisher,
-        service_msgs__msg__ServiceEventInfo__RESPONSE_SENT,
-        ros_response,
-        request_header->sequence_number,
-        request_header->writer_guid);
+      service->impl->service_event_publisher,
+      service_msgs__msg__ServiceEventInfo__RESPONSE_SENT,
+      ros_response,
+      request_header->sequence_number,
+      request_header->writer_guid);
     if (RCL_RET_OK != ret) {
       RCL_SET_ERROR_MSG(rcl_get_error_string().str);
       return RCL_RET_ERROR;

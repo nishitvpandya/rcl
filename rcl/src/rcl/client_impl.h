@@ -20,7 +20,7 @@
 #include "rcl/client.h"
 
 #include "rcutils/stdatomic_helper.h"
-#include "service_event_publisher.h"
+#include "./service_event_publisher.h"
 
 struct rcl_client_impl_s
 {
