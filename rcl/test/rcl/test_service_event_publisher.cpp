@@ -74,6 +74,7 @@ public:
     *this->node_ptr = rcl_get_zero_initialized_node();
     const char * name = "test_service_event_publisher_node";
     rcl_node_options_t node_options = rcl_node_get_default_options();
+    node_options.enable_service_introspection = true;
     ret = rcl_node_init(this->node_ptr, name, "", this->context_ptr, &node_options);
     ASSERT_EQ(RCL_RET_OK, ret) << rcl_get_error_string().str;
   }
@@ -427,6 +428,7 @@ public:
     *this->node_ptr = rcl_get_zero_initialized_node();
     const char * name = "test_service_node";
     rcl_node_options_t node_options = rcl_node_get_default_options();
+    node_options.enable_service_introspection = true;
     ret = rcl_node_init(this->node_ptr, name, "", this->context_ptr, &node_options);
     ASSERT_EQ(RCL_RET_OK, ret) << rcl_get_error_string().str;
     const rosidl_service_type_support_t * srv_ts =
@@ -478,11 +480,11 @@ public:
   }
 };
 
-/* Test enabling/disabling service introspection features
+/* Whole test of service event publisher with service, client, and subscription
  */
 TEST_F(
   CLASSNAME(TestServiceEventPublisherWithServicesAndClientsFixture, RMW_IMPLEMENTATION),
-  test_service_event_publisher_enable_and_disable)
+  test_service_event_publisher_with_subscriber)
 {
   rcl_ret_t ret;
   rmw_message_info_t message_info = rmw_get_zero_initialized_message_info();
@@ -545,6 +547,100 @@ TEST_F(
       ret = rcl_take(&subscription, &event_msg, &message_info, nullptr);
       ASSERT_EQ(RCL_RET_OK, ret) << rcl_get_error_string().str;
       ASSERT_EQ(service_msgs__msg__ServiceEventInfo__RESPONSE_SENT, event_msg.info.event_type);
+    }
+    test_msgs__srv__BasicTypes_Request__fini(&service_request);
+  }
+
+  ASSERT_TRUE(
+    wait_for_client_to_be_ready(&client, context_ptr, 10, 100));
+
+  test_msgs__srv__BasicTypes_Response client_response;
+  memset(&client_response, 0, sizeof(test_msgs__srv__BasicTypes_Response));
+  test_msgs__srv__BasicTypes_Response__init(&client_response);
+
+  rmw_service_info_t header;
+  ret = rcl_take_response(&client, &(header.request_id), &client_response);
+  ASSERT_EQ(RCL_RET_OK, ret) << rcl_get_error_string().str;
+  test_msgs__srv__BasicTypes_Response__fini(&client_response);
+
+  {  // expect a RESPONSE_RECEIVED event
+    ret = rcl_take(&subscription, &event_msg, &message_info, nullptr);
+    ASSERT_EQ(RCL_RET_OK, ret) << rcl_get_error_string().str;
+    ASSERT_EQ(service_msgs__msg__ServiceEventInfo__RESPONSE_RECEIVED, event_msg.info.event_type);
+    ASSERT_EQ(2U, event_msg.response.data[0].uint32_value);
+  }
+
+  test_msgs__srv__BasicTypes_Event__fini(&event_msg);
+}
+
+/* Integration level test with disabling service events
+ */
+TEST_F(
+  CLASSNAME(TestServiceEventPublisherWithServicesAndClientsFixture, RMW_IMPLEMENTATION),
+  test_service_event_publisher_with_subscriber_disable_service_events)
+{
+  rcl_ret_t ret;
+  rmw_message_info_t message_info = rmw_get_zero_initialized_message_info();
+  test_msgs__srv__BasicTypes_Event event_msg;
+  test_msgs__srv__BasicTypes_Event__init(&event_msg);
+
+  ret = rcl_service_introspection_configure_server_service_events(&service, node_ptr, false);
+  ASSERT_EQ(RCL_RET_OK, ret) << rcl_get_error_string().str;
+
+  ASSERT_TRUE(wait_for_server_to_be_available(this->node_ptr, &client, 10, 1000));
+
+  test_msgs__srv__BasicTypes_Request client_request;
+  memset(&client_request, 0, sizeof(test_msgs__srv__BasicTypes_Request));
+  test_msgs__srv__BasicTypes_Request__init(&client_request);
+  client_request.bool_value = false;
+  client_request.uint8_value = 1;
+  client_request.uint32_value = 2;
+  int64_t sequence_number;
+  ret = rcl_send_request(&client, &client_request, &sequence_number);
+  EXPECT_NE(sequence_number, 0);
+  test_msgs__srv__BasicTypes_Request__fini(&client_request);
+  ASSERT_EQ(RCL_RET_OK, ret) << rcl_get_error_string().str;
+
+  ASSERT_TRUE(wait_for_service_to_be_ready(&service, context_ptr, 10, 100));
+
+  {  // expect a REQUEST_SENT event
+    ASSERT_TRUE(wait_for_subscription_to_be_ready(&subscription, context_ptr, 10, 100));
+    ret = rcl_take(&subscription, &event_msg, &message_info, nullptr);
+    ASSERT_EQ(RCL_RET_OK, ret) << rcl_get_error_string().str;
+    ASSERT_EQ(service_msgs__msg__ServiceEventInfo__REQUEST_SENT, event_msg.info.event_type);
+  }
+
+  {
+    test_msgs__srv__BasicTypes_Response service_response;
+    memset(&service_response, 0, sizeof(test_msgs__srv__BasicTypes_Response));
+    test_msgs__srv__BasicTypes_Response__init(&service_response);
+    OSRF_TESTING_TOOLS_CPP_SCOPE_EXIT(
+      {test_msgs__srv__BasicTypes_Response__fini(&service_response);});
+
+    test_msgs__srv__BasicTypes_Request service_request;
+    memset(&service_request, 0, sizeof(test_msgs__srv__BasicTypes_Request));
+    test_msgs__srv__BasicTypes_Request__init(&service_request);
+
+    rmw_service_info_t header;
+    ret = rcl_take_request(
+      &service, &(header.request_id), &service_request);
+    ASSERT_EQ(RCL_RET_OK, ret) << rcl_get_error_string().str;
+    ASSERT_EQ(2U, service_request.uint32_value);
+
+    {  // expect take to fail since no introspection message should be published
+      ret = rcl_take(&subscription, &event_msg, &message_info, nullptr);
+      ASSERT_EQ(RCL_RET_SUBSCRIPTION_TAKE_FAILED, ret) << rcl_get_error_string().str;
+    }
+
+    service_response.uint32_value = 2;
+    service_response.uint8_value = 3;
+    ret = rcl_send_response(&service, &header.request_id, &service_response);
+    ASSERT_EQ(RCL_RET_OK, ret) << rcl_get_error_string().str;
+
+    {  // expect take to fail since no introspection message should be published
+      OSRF_TESTING_TOOLS_CPP_SCOPE_EXIT({test_msgs__srv__BasicTypes_Event__fini(&event_msg);});
+      ret = rcl_take(&subscription, &event_msg, &message_info, nullptr);
+      ASSERT_EQ(RCL_RET_SUBSCRIPTION_TAKE_FAILED, ret) << rcl_get_error_string().str;
     }
     test_msgs__srv__BasicTypes_Request__fini(&service_request);
   }
