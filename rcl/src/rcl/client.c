@@ -109,7 +109,7 @@ rcl_client_init(
   }
 
   client->impl->service_event_publisher = NULL;
-  if (options->enable_service_introspection) {
+  if (rcl_node_get_options(node)->enable_service_introspection) {
     client->impl->service_event_publisher = allocator->zero_allocate(
       1, sizeof(rcl_service_event_publisher_t), allocator->state);
     RCL_CHECK_FOR_NULL_WITH_MSG(

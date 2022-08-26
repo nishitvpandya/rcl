@@ -249,8 +249,8 @@ rcl_ret_t rcl_service_event_publisher_fini(
 
   rcl_ret_t ret = rcl_service_introspection_disable(service_event_publisher, node);
   if (RCL_RET_OK != ret && RCL_RET_ALREADY_SHUTDOWN != ret) {
-    rcutils_reset_error();
     RCL_SET_ERROR_MSG(rcl_get_error_string().str);
+    rcutils_reset_error();
     return ret;
   }
   rcl_allocator_t allocator = service_event_publisher->impl->options.publisher_options.allocator;
@@ -272,20 +272,21 @@ rcl_ret_t rcl_send_service_event_message(
   RCUTILS_CAN_RETURN_WITH_ERROR_OF(RCL_RET_PUBLISHER_INVALID);
   RCUTILS_CAN_RETURN_WITH_ERROR_OF(RCL_RET_ERROR);
   RCUTILS_CAN_RETURN_WITH_ERROR_OF(RCL_RET_BAD_ALLOC);
-  // early exit if service introspection disabled during runtime
 
   RCL_CHECK_ARGUMENT_FOR_NULL(ros_response_request, RCL_RET_INVALID_ARGUMENT);
   RCL_CHECK_FOR_NULL_WITH_MSG(uuid, "uuid is NULL", return RCL_RET_INVALID_ARGUMENT);
-  rcl_allocator_t allocator = service_event_publisher->impl->options.publisher_options.allocator;
-  RCL_CHECK_ALLOCATOR_WITH_MSG(&allocator, "invalid allocator", return RCL_RET_INVALID_ARGUMENT);
 
   if (!rcl_service_event_publisher_is_valid(service_event_publisher)) {
     return RCL_RET_ERROR;
   }
 
+  // early exit if service introspection disabled during runtime
   if (!service_event_publisher->impl->options._enabled) {
     return RCL_RET_OK;
   }
+
+  rcl_allocator_t allocator = service_event_publisher->impl->options.publisher_options.allocator;
+  RCL_CHECK_ALLOCATOR_WITH_MSG(&allocator, "invalid allocator", return RCL_RET_INVALID_ARGUMENT);
 
   if (!rcl_publisher_is_valid(service_event_publisher->impl->publisher)) {
     return RCL_RET_PUBLISHER_INVALID;
@@ -371,10 +372,11 @@ rcl_ret_t rcl_service_introspection_enable(
   if (!rcl_node_is_valid(node)) {
     return RCL_RET_NODE_INVALID;
   }
+  // need to check if node_opt is disabled
 
-  // Only enable if currently disabled
+  // Early exit if already enabled
   if (service_event_publisher->impl->options._enabled) {
-    return RCL_RET_ALREADY_INIT;
+    return RCL_RET_OK;
   }
 
   if (!rcl_service_event_publisher_is_valid(service_event_publisher)) {
@@ -415,16 +417,17 @@ rcl_ret_t rcl_service_introspection_disable(
   if (!rcl_service_event_publisher_is_valid(service_event_publisher)) {
     return RCL_RET_ERROR;
   }
+
+  // Early exit if already disabled
+  if (!service_event_publisher->impl->options._enabled) {
+    return RCL_RET_OK;
+  }
+
   if (!rcl_node_is_valid(node)) {
     return RCL_RET_NODE_INVALID;
   }
-
   rcl_allocator_t allocator = service_event_publisher->impl->options.publisher_options.allocator;
   RCL_CHECK_ALLOCATOR_WITH_MSG(&allocator, "allocator is invalid", return RCL_RET_ERROR);
-
-  if (!service_event_publisher->impl->options._enabled) {
-    return RCL_RET_ALREADY_SHUTDOWN;
-  }
 
   if (service_event_publisher->impl->publisher) {
     rcl_ret_t ret = rcl_publisher_fini(service_event_publisher->impl->publisher, node);
