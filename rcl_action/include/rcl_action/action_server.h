@@ -54,6 +54,8 @@ typedef struct rcl_action_server_options_s
   rmw_qos_profile_t feedback_topic_qos;
   /// Status topic quality of service
   rmw_qos_profile_t status_topic_qos;
+  /// Service event topic quality of service
+  rmw_qos_profile_t service_event_qos;
   /// Custom allocator for the action server, used for incidental allocations.
   /** For default behavior (malloc/free), see: rcl_get_default_allocator() */
   rcl_allocator_t allocator;

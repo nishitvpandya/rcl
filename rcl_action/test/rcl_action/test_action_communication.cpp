@@ -70,7 +70,7 @@ protected:
     const rcl_action_client_options_t client_options = rcl_action_client_get_default_options();
     this->action_client = rcl_action_get_zero_initialized_client();
     ret = rcl_action_client_init(
-      &this->action_client, &this->node, ts, action_name, &client_options);
+      &this->action_client, &this->node, &this->clock, ts, action_name, &client_options);
     ASSERT_EQ(ret, RCL_RET_OK) << rcl_get_error_string().str;
 
     size_t num_subscriptions_server;

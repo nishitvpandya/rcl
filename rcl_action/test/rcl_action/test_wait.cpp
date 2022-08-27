@@ -31,9 +31,10 @@ protected:
   void SetUp() override
   {
     rcl_ret_t ret;
+    rcl_allocator_t allocator = rcl_get_default_allocator();
     {
       rcl_init_options_t init_options = rcl_get_zero_initialized_init_options();
-      ret = rcl_init_options_init(&init_options, rcl_get_default_allocator());
+      ret = rcl_init_options_init(&init_options, allocator);
       ASSERT_EQ(RCL_RET_OK, ret) << rcl_get_error_string().str;
       OSRF_TESTING_TOOLS_CPP_SCOPE_EXIT(
       {
@@ -49,6 +50,8 @@ protected:
     ret = rcl_node_init(&this->node, node_name, "", &this->context, &node_options);
     ASSERT_EQ(RCL_RET_OK, ret) << rcl_get_error_string().str;
     EXPECT_FALSE(rcl_error_is_set()) << rcl_get_error_string().str;
+    ret = rcl_clock_init(RCL_ROS_TIME, &this->clock, &allocator);
+    ASSERT_EQ(RCL_RET_OK, ret) << rcl_get_error_string().str;
 
     const char * action_name = "test_action_client_name";
     const rosidl_action_type_support_t * action_typesupport =
@@ -58,7 +61,7 @@ protected:
 
     action_client = rcl_action_get_zero_initialized_client();
     ret = rcl_action_client_init(
-      &this->action_client, &this->node, action_typesupport,
+      &this->action_client, &this->node, &this->clock, action_typesupport,
       action_name, &action_client_options);
     EXPECT_EQ(ret, RCL_RET_OK) << rcl_get_error_string().str;
     EXPECT_FALSE(rcl_error_is_set()) << rcl_get_error_string().str;
@@ -68,7 +71,9 @@ protected:
   {
     rcl_ret_t fini_ret = rcl_action_client_fini(&action_client, &this->node);
     EXPECT_EQ(RCL_RET_OK, fini_ret) << rcl_get_error_string().str;
-    rcl_ret_t ret = rcl_node_fini(&this->node);
+    rcl_ret_t ret = rcl_clock_fini(&this->clock);
+    EXPECT_EQ(RCL_RET_OK, ret) << rcl_get_error_string().str;
+    ret = rcl_node_fini(&this->node);
     EXPECT_EQ(RCL_RET_OK, ret) << rcl_get_error_string().str;
     ret = rcl_shutdown(&this->context);
     EXPECT_EQ(RCL_RET_OK, ret) << rcl_get_error_string().str;
@@ -79,6 +84,7 @@ protected:
   rcl_context_t context;
   rcl_node_t node;
   rcl_action_client_t action_client;
+  rcl_clock_t clock;
 };
 
 class TestActionServerWait : public ::testing::Test
@@ -374,7 +380,7 @@ TEST_F(TestActionClientWait, test_client_wait_set_get_num_entities) {
   });
 
   rcl_ret_t ret = rcl_action_client_init(
-    &action_client, &this->node, action_typesupport,
+    &action_client, &this->node, &this->clock, action_typesupport,
     action_name, &action_client_options);
   EXPECT_EQ(ret, RCL_RET_OK) << rcl_get_error_string().str;
   rcl_reset_error();
@@ -539,7 +545,7 @@ TEST_F(TestActionClientWait, test_client_wait_set_get_entities_ready) {
   });
 
   rcl_ret_t ret = rcl_action_client_init(
-    &action_client, &this->node, action_typesupport,
+    &action_client, &this->node, &this->clock, action_typesupport,
     action_name, &action_client_options);
   EXPECT_EQ(ret, RCL_RET_OK) << rcl_get_error_string().str;
   rcl_reset_error();

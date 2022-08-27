@@ -112,8 +112,13 @@ _rcl_action_client_fini_impl(
     } \
     goto fail; \
   } \
+  rcl_publisher_options_t Type ## _event_publisher_options = rcl_publisher_get_default_options(); \
+  Type ## _event_publisher_options.qos = options->service_event_qos; \
+  Type ## _event_publisher_options.allocator = allocator; \
   rcl_client_options_t Type ## _service_client_options = { \
-    .qos = options->Type ## _service_qos, .allocator = allocator \
+    .qos = options->Type ## _service_qos, .allocator = allocator, .clock = clock, \
+    .event_publisher_options = Type ## _event_publisher_options, \
+    .enable_service_introspection = rcl_node_get_options(node)->enable_service_introspection \
   }; \
   action_client->impl->Type ## _client = rcl_get_zero_initialized_client(); \
   ret = rcl_client_init( \
@@ -175,6 +180,7 @@ rcl_ret_t
 rcl_action_client_init(
   rcl_action_client_t * action_client,
   rcl_node_t * node,
+  rcl_clock_t * clock,
   const rosidl_action_type_support_t * type_support,
   const char * action_name,
   const rcl_action_client_options_t * options)
@@ -256,6 +262,7 @@ rcl_action_client_get_default_options(void)
   default_options.result_service_qos = rmw_qos_profile_services_default;
   default_options.feedback_topic_qos = rmw_qos_profile_default;
   default_options.status_topic_qos = rcl_action_qos_profile_status_default;
+  default_options.service_event_qos = rmw_qos_profile_default;
   default_options.allocator = rcl_get_default_allocator();
   return default_options;
 }

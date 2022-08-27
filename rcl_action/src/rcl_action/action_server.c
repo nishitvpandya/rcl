@@ -56,8 +56,13 @@ rcl_action_get_zero_initialized_server(void)
     } \
     goto fail; \
   } \
+  rcl_publisher_options_t Type ## _event_publisher_options = rcl_publisher_get_default_options(); \
+  Type ## _event_publisher_options.qos = options->service_event_qos; \
+  Type ## _event_publisher_options.allocator = allocator; \
   rcl_service_options_t Type ## _service_options = { \
-    .qos = options->Type ## _service_qos, .allocator = allocator \
+    .qos = options->Type ## _service_qos, .allocator = allocator, .clock = clock, \
+    .event_publisher_options = Type ## _event_publisher_options, \
+    .enable_service_introspection = rcl_node_get_options(node)->enable_service_introspection \
   }; \
   ret = rcl_service_init( \
     &action_server->impl->Type ## _service, \
@@ -90,9 +95,9 @@ rcl_action_get_zero_initialized_server(void)
     } \
     goto fail; \
   } \
-  rcl_publisher_options_t Type ## _publisher_options = { \
-    .qos = options->Type ## _topic_qos, .allocator = allocator \
-  }; \
+  rcl_publisher_options_t Type ## _publisher_options = rcl_publisher_get_default_options(); \
+  Type ## _publisher_options.qos = options->Type ## _topic_qos; \
+  Type ## _publisher_options.allocator = allocator; \
   ret = rcl_publisher_init( \
     &action_server->impl->Type ## _publisher, \
     node, \
@@ -266,6 +271,7 @@ rcl_action_server_get_default_options(void)
   default_options.result_service_qos = rmw_qos_profile_services_default;
   default_options.feedback_topic_qos = rmw_qos_profile_default;
   default_options.status_topic_qos = rcl_action_qos_profile_status_default;
+  default_options.service_event_qos = rmw_qos_profile_default;
   default_options.allocator = rcl_get_default_allocator();
   default_options.result_timeout.nanoseconds = RCUTILS_S_TO_NS(15 * 60);  // 15 minutes
   return default_options;

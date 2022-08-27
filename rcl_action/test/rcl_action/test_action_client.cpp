@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include <gtest/gtest.h>
+#include <rcl/allocator.h>
 
 #include <string>
 
@@ -98,46 +99,53 @@ TEST_F(TestActionClientBaseFixture, test_action_client_init_fini) {
   invalid_action_client_options.allocator =
     (rcl_allocator_t)rcutils_get_zero_initialized_allocator();
   rcl_action_client_t action_client = rcl_action_get_zero_initialized_client();
+  rcl_allocator_t allocator = rcutils_get_default_allocator();
+  rcl_clock_t clock;
+  ret = rcl_clock_init(RCL_STEADY_TIME, &clock, &allocator);
+  ASSERT_EQ(RCL_RET_OK, ret) << rcl_get_error_string().str;
+  OSRF_TESTING_TOOLS_CPP_SCOPE_EXIT({
+    EXPECT_EQ(RCL_RET_OK, rcl_clock_fini(&clock)) << rcl_get_error_string().str;
+  });
 
   ret = rcl_action_client_init(
-    nullptr, &this->node, action_typesupport,
+    nullptr, &this->node, &clock, action_typesupport,
     action_name, &action_client_options);
   EXPECT_EQ(ret, RCL_RET_INVALID_ARGUMENT) << rcl_get_error_string().str;
   rcl_reset_error();
 
   ret = rcl_action_client_init(
-    &action_client, nullptr, action_typesupport,
+    &action_client, nullptr, &clock, action_typesupport,
     action_name, &action_client_options);
   EXPECT_EQ(ret, RCL_RET_NODE_INVALID) << rcl_get_error_string().str;
   rcl_reset_error();
 
   ret = rcl_action_client_init(
-    &action_client, &invalid_node, action_typesupport,
+    &action_client, &invalid_node, &clock, action_typesupport,
     action_name, &action_client_options);
   EXPECT_EQ(ret, RCL_RET_NODE_INVALID) << rcl_get_error_string().str;
   rcl_reset_error();
 
   ret = rcl_action_client_init(
-    &action_client, &this->node, nullptr,
+    &action_client, &this->node, &clock, nullptr,
     action_name, &action_client_options);
   EXPECT_EQ(ret, RCL_RET_INVALID_ARGUMENT) << rcl_get_error_string().str;
   rcl_reset_error();
 
   ret = rcl_action_client_init(
-    &action_client, &this->node, action_typesupport,
+    &action_client, &this->node, &clock, action_typesupport,
     nullptr, &action_client_options);
   EXPECT_EQ(ret, RCL_RET_INVALID_ARGUMENT) << rcl_get_error_string().str;
   rcl_reset_error();
 
   ret = rcl_action_client_init(
-    &action_client, &this->node,
+    &action_client, &this->node, &clock,
     action_typesupport, action_name,
     nullptr);
   EXPECT_EQ(ret, RCL_RET_INVALID_ARGUMENT) << rcl_get_error_string().str;
   rcl_reset_error();
 
   ret = rcl_action_client_init(
-    &action_client, &this->node,
+    &action_client, &this->node, &clock,
     action_typesupport, action_name,
     &invalid_action_client_options);
   EXPECT_EQ(ret, RCL_RET_INVALID_ARGUMENT) << rcl_get_error_string().str;
@@ -151,7 +159,7 @@ TEST_F(TestActionClientBaseFixture, test_action_client_init_fini) {
     reinterpret_cast<void *>(&time_bomb_state);
   invalid_action_client_options.allocator.allocate = time_bomb_malloc;
   ret = rcl_action_client_init(
-    &action_client, &this->node, action_typesupport,
+    &action_client, &this->node, &clock, action_typesupport,
     action_name, &invalid_action_client_options);
   EXPECT_EQ(ret, RCL_RET_BAD_ALLOC) << rcl_get_error_string().str;
   rcl_reset_error();
@@ -160,7 +168,7 @@ TEST_F(TestActionClientBaseFixture, test_action_client_init_fini) {
   time_bomb_state.malloc_count_until_failure = 1;
   invalid_action_client_options.allocator.state = &time_bomb_state;
   ret = rcl_action_client_init(
-    &action_client, &this->node, action_typesupport,
+    &action_client, &this->node, &clock, action_typesupport,
     action_name, &invalid_action_client_options);
   EXPECT_EQ(ret, RCL_RET_BAD_ALLOC) << rcl_get_error_string().str;
   rcl_reset_error();
@@ -171,7 +179,7 @@ TEST_F(TestActionClientBaseFixture, test_action_client_init_fini) {
     i++;
     invalid_action_client_options.allocator.state = &time_bomb_state;
     ret = rcl_action_client_init(
-      &action_client, &this->node, action_typesupport,
+      &action_client, &this->node, &clock, action_typesupport,
       action_name, &invalid_action_client_options);
     if (RCL_RET_OK != ret) {
       EXPECT_TRUE(rcl_error_is_set());
@@ -184,13 +192,13 @@ TEST_F(TestActionClientBaseFixture, test_action_client_init_fini) {
   } while (ret != RCL_RET_OK);
 
   ret = rcl_action_client_init(
-    &action_client, &this->node, action_typesupport,
+    &action_client, &this->node, &clock, action_typesupport,
     action_name, &action_client_options);
   EXPECT_EQ(ret, RCL_RET_OK) << rcl_get_error_string().str;
   rcl_reset_error();
 
   ret = rcl_action_client_init(
-    &action_client, &this->node, action_typesupport,
+    &action_client, &this->node, &clock, action_typesupport,
     action_name, &action_client_options);
   EXPECT_EQ(ret, RCL_RET_ALREADY_INIT) << rcl_get_error_string().str;
   rcl_reset_error();
@@ -226,8 +234,15 @@ protected:
     const rosidl_action_type_support_t * action_typesupport =
       ROSIDL_GET_ACTION_TYPE_SUPPORT(test_msgs, Fibonacci);
     this->action_client_options = rcl_action_client_get_default_options();
-    rcl_ret_t ret = rcl_action_client_init(
-      &this->action_client, &this->node, action_typesupport,
+    rcl_allocator_t allocator = rcutils_get_default_allocator();
+    rcl_clock_t clock;
+    rcl_ret_t ret = rcl_clock_init(RCL_STEADY_TIME, &clock, &allocator);
+    ASSERT_EQ(RCL_RET_OK, ret) << rcl_get_error_string().str;
+    OSRF_TESTING_TOOLS_CPP_SCOPE_EXIT({
+        EXPECT_EQ(RCL_RET_OK, rcl_clock_fini(&clock)) << rcl_get_error_string().str;
+        });
+    ret = rcl_action_client_init(
+        &this->action_client, &this->node, &clock, action_typesupport,
       this->action_name, &this->action_client_options);
     ASSERT_EQ(ret, RCL_RET_OK) << rcl_get_error_string().str;
     this->invalid_action_client = rcl_action_get_zero_initialized_client();
@@ -362,6 +377,13 @@ TEST_F(TestActionClientBaseFixture, test_action_client_init_fini_maybe_fail)
     ROSIDL_GET_ACTION_TYPE_SUPPORT(test_msgs, Fibonacci);
   rcl_action_client_t action_client = rcl_action_get_zero_initialized_client();
   rcl_action_client_options_t action_client_options = rcl_action_client_get_default_options();
+  rcl_clock_t clock;
+  rcl_allocator_t allocator = rcl_get_default_allocator();
+  ret = rcl_clock_init(RCL_STEADY_TIME, &clock, &allocator);
+  ASSERT_EQ(RCL_RET_OK, ret) << rcl_get_error_string().str;
+  OSRF_TESTING_TOOLS_CPP_SCOPE_EXIT({
+      EXPECT_EQ(RCL_RET_OK, rcl_clock_fini(&clock)) << rcl_get_error_string().str;
+      });
 
   RCUTILS_FAULT_INJECTION_TEST(
   {
@@ -370,6 +392,7 @@ TEST_F(TestActionClientBaseFixture, test_action_client_init_fini_maybe_fail)
     ret = rcl_action_client_init(
       &action_client,
       &node,
+      &clock,
       action_typesupport,
       action_name.c_str(),
       &action_client_options);

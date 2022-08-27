@@ -403,9 +403,16 @@ TEST_F(TestActionGraphMultiNodeFixture, test_action_get_names_and_types) {
     ROSIDL_GET_ACTION_TYPE_SUPPORT(test_msgs, Fibonacci);
   const char * client_action_name = "/test_action_get_names_and_types_client_action_name";
   rcl_action_client_options_t action_client_options = rcl_action_client_get_default_options();
+  rcl_clock_t clock;
+  ret = rcl_clock_init(RCL_STEADY_TIME, &clock, &this->allocator);
+  ASSERT_EQ(RCL_RET_OK, ret) << rcl_get_error_string().str;
+  OSRF_TESTING_TOOLS_CPP_SCOPE_EXIT({
+    EXPECT_EQ(RCL_RET_OK, rcl_clock_fini(&clock)) << rcl_get_error_string().str;
+  });
   ret = rcl_action_client_init(
     &action_client,
     &this->remote_node,
+    &clock,
     action_typesupport,
     client_action_name,
     &action_client_options);
@@ -432,13 +439,6 @@ TEST_F(TestActionGraphMultiNodeFixture, test_action_get_names_and_types) {
 
   // Create an action server
   rcl_action_server_t action_server = rcl_action_get_zero_initialized_server();
-  rcl_clock_t clock;
-  ret = rcl_clock_init(RCL_STEADY_TIME, &clock, &this->allocator);
-  ASSERT_EQ(RCL_RET_OK, ret) << rcl_get_error_string().str;
-  OSRF_TESTING_TOOLS_CPP_SCOPE_EXIT(
-  {
-    EXPECT_EQ(RCL_RET_OK, rcl_clock_fini(&clock)) << rcl_get_error_string().str;
-  });
   const char * server_action_name = "/test_action_get_names_and_types_server_action_name";
   rcl_action_server_options_t action_server_options = rcl_action_server_get_default_options();
   ret = rcl_action_server_init(
@@ -475,6 +475,13 @@ TEST_F(TestActionGraphMultiNodeFixture, test_action_get_names_and_types) {
 TEST_F(TestActionGraphMultiNodeFixture, test_action_get_server_names_and_types_by_node) {
   rcl_ret_t ret;
   // Create an action client
+  rcl_clock_t clock;
+  ret = rcl_clock_init(RCL_STEADY_TIME, &clock, &this->allocator);
+  ASSERT_EQ(RCL_RET_OK, ret) << rcl_get_error_string().str;
+  OSRF_TESTING_TOOLS_CPP_SCOPE_EXIT(
+  {
+    EXPECT_EQ(RCL_RET_OK, rcl_clock_fini(&clock)) << rcl_get_error_string().str;
+  });
   rcl_action_client_t action_client = rcl_action_get_zero_initialized_client();
   const rosidl_action_type_support_t * action_typesupport =
     ROSIDL_GET_ACTION_TYPE_SUPPORT(test_msgs, Fibonacci);
@@ -482,6 +489,7 @@ TEST_F(TestActionGraphMultiNodeFixture, test_action_get_server_names_and_types_b
   ret = rcl_action_client_init(
     &action_client,
     &this->remote_node,
+    &clock,
     action_typesupport,
     this->action_name,
     &action_client_options);
@@ -503,13 +511,6 @@ TEST_F(TestActionGraphMultiNodeFixture, test_action_get_server_names_and_types_b
 
   // Create an action server
   rcl_action_server_t action_server = rcl_action_get_zero_initialized_server();
-  rcl_clock_t clock;
-  ret = rcl_clock_init(RCL_STEADY_TIME, &clock, &this->allocator);
-  ASSERT_EQ(RCL_RET_OK, ret) << rcl_get_error_string().str;
-  OSRF_TESTING_TOOLS_CPP_SCOPE_EXIT(
-  {
-    EXPECT_EQ(RCL_RET_OK, rcl_clock_fini(&clock)) << rcl_get_error_string().str;
-  });
   rcl_action_server_options_t action_server_options = rcl_action_server_get_default_options();
   ret = rcl_action_server_init(
     &action_server,
@@ -582,6 +583,7 @@ TEST_F(TestActionGraphMultiNodeFixture, test_action_get_client_names_and_types_b
   ret = rcl_action_client_init(
     &action_client,
     &this->remote_node,
+    &clock,
     action_typesupport,
     this->action_name,
     &action_client_options);
@@ -623,6 +625,13 @@ TEST_F(TestActionGraphMultiNodeFixture, get_names_and_types_maybe_fail)
 
 TEST_F(TestActionGraphMultiNodeFixture, action_client_init_maybe_fail)
 {
+  rcl_clock_t clock;
+  rcl_ret_t ret = rcl_clock_init(RCL_STEADY_TIME, &clock, &this->allocator);
+  ASSERT_EQ(RCL_RET_OK, ret) << rcl_get_error_string().str;
+  OSRF_TESTING_TOOLS_CPP_SCOPE_EXIT(
+  {
+    EXPECT_EQ(RCL_RET_OK, rcl_clock_fini(&clock)) << rcl_get_error_string().str;
+  });
   RCUTILS_FAULT_INJECTION_TEST(
   {
     const rosidl_action_type_support_t * action_typesupport = ROSIDL_GET_ACTION_TYPE_SUPPORT(
@@ -633,6 +642,7 @@ TEST_F(TestActionGraphMultiNodeFixture, action_client_init_maybe_fail)
     rcl_ret_t ret = rcl_action_client_init(
       &action_client,
       &this->remote_node,
+      &clock,
       action_typesupport,
       this->action_name,
       &action_client_options);
