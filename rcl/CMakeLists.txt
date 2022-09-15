@@ -12,6 +12,7 @@ find_package(rmw REQUIRED)
 find_package(rmw_implementation REQUIRED)
 find_package(rosidl_runtime_c REQUIRED)
 find_package(tracetools REQUIRED)
+find_package(difc_mechanism REQUIRED)
 
 include(cmake/rcl_set_symbol_visibility_hidden.cmake)
 include(cmake/get_default_rcl_logging_implementation.cmake)
@@ -81,6 +82,7 @@ ament_target_dependencies(${PROJECT_NAME}
   ${RCL_LOGGING_IMPL}
   "rosidl_runtime_c"
   "tracetools"
+  "difc_mechanism"
 )
 
 # Causes the visibility macros to use dllexport rather than dllimport,

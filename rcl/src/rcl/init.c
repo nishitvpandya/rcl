@@ -35,10 +35,13 @@ extern "C"
 #include "rcl/security.h"
 #include "rcl/validate_enclave_name.h"
 
+#include "difc_mechanism/oabe_c_interface.h"
+
 #include "./arguments_impl.h"
 #include "./common.h"
 #include "./context_impl.h"
 #include "./init_options_impl.h"
+
 
 static atomic_uint_least64_t __rcl_next_unique_id = ATOMIC_VAR_INIT(1);
 
@@ -50,6 +53,8 @@ rcl_init(
   rcl_context_t * context)
 {
   rcl_ret_t fail_ret = RCL_RET_ERROR;
+
+  oabe_init();
 
   if (argc > 0) {
     RCL_CHECK_ARGUMENT_FOR_NULL(argv, RCL_RET_INVALID_ARGUMENT);
@@ -231,6 +236,7 @@ fail:
 rcl_ret_t
 rcl_shutdown(rcl_context_t * context)
 {
+  oabe_shutdown();
   RCUTILS_LOG_DEBUG_NAMED(
     ROS_PACKAGE_NAME,
     "Shutting down ROS client library, for context at address: %p", (void *) context);
